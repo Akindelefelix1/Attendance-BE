@@ -30,10 +30,14 @@ export class AuthService {
   }
 
   private setCookie(res: Response, token: string) {
+    const cookieSameSite =
+      (process.env.COOKIE_SAME_SITE as "lax" | "strict" | "none" | undefined) ?? "lax";
+    const cookieSecure = (process.env.COOKIE_SECURE ?? "false").toLowerCase() === "true";
+
     res.cookie(COOKIE_NAME, token, {
       httpOnly: true,
-      sameSite: "lax",
-      secure: false,
+      sameSite: cookieSameSite,
+      secure: cookieSecure,
       maxAge: 1000 * 60 * 60 * 24 * 7
     });
   }
