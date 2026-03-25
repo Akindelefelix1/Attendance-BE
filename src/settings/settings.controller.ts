@@ -9,10 +9,21 @@ import {
   UseGuards
 } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
+import {
+  ApiBody,
+  ApiCookieAuth,
+  ApiForbiddenResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiTags
+} from "@nestjs/swagger";
 import { SettingsService } from "./settings.service";
 import { Permissions } from "../auth/permissions.decorator";
 import { PermissionsGuard } from "../auth/permissions.guard";
 
+@ApiTags("Settings")
+@ApiCookieAuth("cookieAuth")
 @Controller("settings")
 export class SettingsController {
   constructor(private readonly settingsService: SettingsService) {}
@@ -33,6 +44,10 @@ export class SettingsController {
   }
 
   @Get(":orgId")
+  @ApiOperation({ summary: "Get organization settings" })
+  @ApiParam({ name: "orgId", type: String })
+  @ApiOkResponse({ description: "Settings returned" })
+  @ApiForbiddenResponse({ description: "Authentication/authorization failed" })
   @UseGuards(AuthGuard("jwt"), PermissionsGuard)
   @Permissions("manage_settings")
   getSettings(
@@ -44,6 +59,30 @@ export class SettingsController {
   }
 
   @Patch(":orgId")
+  @ApiOperation({ summary: "Update organization settings" })
+  @ApiParam({ name: "orgId", type: String })
+  @ApiBody({
+    schema: {
+      type: "object",
+      properties: {
+        lateAfterTime: { type: "string", example: "09:00" },
+        earlyCheckoutBeforeTime: { type: "string", example: "17:00" },
+        officeGeoFenceEnabled: { type: "boolean" },
+        officeLatitude: { type: "number", nullable: true },
+        officeLongitude: { type: "number", nullable: true },
+        officeRadiusMeters: { type: "number" },
+        roles: { type: "array", items: { type: "string" } },
+        workingDays: { type: "array", items: { type: "number" } },
+        analyticsIncludeFutureDays: { type: "boolean" },
+        attendanceEditPolicy: { type: "string", enum: ["any", "self_only"] },
+        adminEmails: { type: "array", items: { type: "string", format: "email" } },
+        planTier: { type: "string", enum: ["free", "plus", "pro"] },
+        staffLoginPassword: { type: "string" }
+      }
+    }
+  })
+  @ApiOkResponse({ description: "Settings updated" })
+  @ApiForbiddenResponse({ description: "Authentication/authorization failed" })
   @UseGuards(AuthGuard("jwt"), PermissionsGuard)
   @Permissions("manage_settings")
   updateSettings(

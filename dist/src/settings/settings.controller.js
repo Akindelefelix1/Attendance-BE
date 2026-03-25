@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SettingsController = void 0;
 const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
+const swagger_1 = require("@nestjs/swagger");
 const settings_service_1 = require("./settings.service");
 const permissions_decorator_1 = require("../auth/permissions.decorator");
 const permissions_guard_1 = require("../auth/permissions.guard");
@@ -46,6 +47,10 @@ let SettingsController = class SettingsController {
 exports.SettingsController = SettingsController;
 __decorate([
     (0, common_1.Get)(":orgId"),
+    (0, swagger_1.ApiOperation)({ summary: "Get organization settings" }),
+    (0, swagger_1.ApiParam)({ name: "orgId", type: String }),
+    (0, swagger_1.ApiOkResponse)({ description: "Settings returned" }),
+    (0, swagger_1.ApiForbiddenResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_settings"),
     __param(0, (0, common_1.Param)("orgId")),
@@ -56,6 +61,30 @@ __decorate([
 ], SettingsController.prototype, "getSettings", null);
 __decorate([
     (0, common_1.Patch)(":orgId"),
+    (0, swagger_1.ApiOperation)({ summary: "Update organization settings" }),
+    (0, swagger_1.ApiParam)({ name: "orgId", type: String }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: "object",
+            properties: {
+                lateAfterTime: { type: "string", example: "09:00" },
+                earlyCheckoutBeforeTime: { type: "string", example: "17:00" },
+                officeGeoFenceEnabled: { type: "boolean" },
+                officeLatitude: { type: "number", nullable: true },
+                officeLongitude: { type: "number", nullable: true },
+                officeRadiusMeters: { type: "number" },
+                roles: { type: "array", items: { type: "string" } },
+                workingDays: { type: "array", items: { type: "number" } },
+                analyticsIncludeFutureDays: { type: "boolean" },
+                attendanceEditPolicy: { type: "string", enum: ["any", "self_only"] },
+                adminEmails: { type: "array", items: { type: "string", format: "email" } },
+                planTier: { type: "string", enum: ["free", "plus", "pro"] },
+                staffLoginPassword: { type: "string" }
+            }
+        }
+    }),
+    (0, swagger_1.ApiOkResponse)({ description: "Settings updated" }),
+    (0, swagger_1.ApiForbiddenResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_settings"),
     __param(0, (0, common_1.Param)("orgId")),
@@ -66,6 +95,8 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], SettingsController.prototype, "updateSettings", null);
 exports.SettingsController = SettingsController = __decorate([
+    (0, swagger_1.ApiTags)("Settings"),
+    (0, swagger_1.ApiCookieAuth)("cookieAuth"),
     (0, common_1.Controller)("settings"),
     __metadata("design:paramtypes", [settings_service_1.SettingsService])
 ], SettingsController);

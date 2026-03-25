@@ -11,10 +11,21 @@ import {
   UseGuards
 } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
+import {
+  ApiBody,
+  ApiCookieAuth,
+  ApiCreatedResponse,
+  ApiForbiddenResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiTags
+} from "@nestjs/swagger";
 import { OrganizationsService } from "./organizations.service";
 import { Permissions } from "../auth/permissions.decorator";
 import { PermissionsGuard } from "../auth/permissions.guard";
 
+@ApiTags("Organizations")
 @Controller("organizations")
 export class OrganizationsController {
   constructor(private readonly organizationsService: OrganizationsService) {}
@@ -35,6 +46,10 @@ export class OrganizationsController {
   }
 
   @Get()
+  @ApiOperation({ summary: "List organizations" })
+  @ApiCookieAuth("cookieAuth")
+  @ApiOkResponse({ description: "Organizations returned" })
+  @ApiForbiddenResponse({ description: "Authentication/authorization failed" })
   @UseGuards(AuthGuard("jwt"))
   findAll(@Req() req: { user?: { orgId?: string; role?: string } }) {
     if (req.user?.role === "super_admin") {
@@ -47,6 +62,11 @@ export class OrganizationsController {
   }
 
   @Get(":id")
+  @ApiOperation({ summary: "Get organization by id" })
+  @ApiCookieAuth("cookieAuth")
+  @ApiParam({ name: "id", type: String })
+  @ApiOkResponse({ description: "Organization returned" })
+  @ApiForbiddenResponse({ description: "Authentication/authorization failed" })
   @UseGuards(AuthGuard("jwt"))
   findOne(
     @Param("id") id: string,
@@ -57,6 +77,30 @@ export class OrganizationsController {
   }
 
   @Post()
+  @ApiOperation({ summary: "Create organization" })
+  @ApiBody({
+    schema: {
+      type: "object",
+      required: ["name", "location"],
+      properties: {
+        name: { type: "string" },
+        location: { type: "string" },
+        lateAfterTime: { type: "string", example: "09:00" },
+        earlyCheckoutBeforeTime: { type: "string", example: "17:00" },
+        officeGeoFenceEnabled: { type: "boolean" },
+        officeLatitude: { type: "number", nullable: true },
+        officeLongitude: { type: "number", nullable: true },
+        officeRadiusMeters: { type: "number" },
+        roles: { type: "array", items: { type: "string" } },
+        workingDays: { type: "array", items: { type: "number" } },
+        analyticsIncludeFutureDays: { type: "boolean" },
+        attendanceEditPolicy: { type: "string", enum: ["any", "self_only"] },
+        adminEmails: { type: "array", items: { type: "string", format: "email" } },
+        planTier: { type: "string", enum: ["free", "plus", "pro"] }
+      }
+    }
+  })
+  @ApiCreatedResponse({ description: "Organization created" })
   create(
     @Body()
     body: {
@@ -95,6 +139,32 @@ export class OrganizationsController {
   }
 
   @Patch(":id")
+  @ApiOperation({ summary: "Update organization" })
+  @ApiCookieAuth("cookieAuth")
+  @ApiParam({ name: "id", type: String })
+  @ApiBody({
+    schema: {
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        location: { type: "string" },
+        lateAfterTime: { type: "string", example: "09:00" },
+        earlyCheckoutBeforeTime: { type: "string", example: "17:00" },
+        officeGeoFenceEnabled: { type: "boolean" },
+        officeLatitude: { type: "number", nullable: true },
+        officeLongitude: { type: "number", nullable: true },
+        officeRadiusMeters: { type: "number" },
+        roles: { type: "array", items: { type: "string" } },
+        workingDays: { type: "array", items: { type: "number" } },
+        analyticsIncludeFutureDays: { type: "boolean" },
+        attendanceEditPolicy: { type: "string", enum: ["any", "self_only"] },
+        adminEmails: { type: "array", items: { type: "string", format: "email" } },
+        planTier: { type: "string", enum: ["free", "plus", "pro"] }
+      }
+    }
+  })
+  @ApiOkResponse({ description: "Organization updated" })
+  @ApiForbiddenResponse({ description: "Authentication/authorization failed" })
   @UseGuards(AuthGuard("jwt"), PermissionsGuard)
   @Permissions("manage_organizations")
   update(
@@ -125,6 +195,11 @@ export class OrganizationsController {
   }
 
   @Delete(":id")
+  @ApiOperation({ summary: "Delete organization" })
+  @ApiCookieAuth("cookieAuth")
+  @ApiParam({ name: "id", type: String })
+  @ApiOkResponse({ description: "Organization deleted" })
+  @ApiForbiddenResponse({ description: "Authentication/authorization failed" })
   @UseGuards(AuthGuard("jwt"), PermissionsGuard)
   @Permissions("manage_organizations")
   remove(

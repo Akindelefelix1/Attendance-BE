@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AnalyticsController = void 0;
 const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
+const swagger_1 = require("@nestjs/swagger");
 const permissions_decorator_1 = require("../auth/permissions.decorator");
 const permissions_guard_1 = require("../auth/permissions.guard");
 const analytics_service_1 = require("./analytics.service");
@@ -42,6 +43,12 @@ let AnalyticsController = class AnalyticsController {
 exports.AnalyticsController = AnalyticsController;
 __decorate([
     (0, common_1.Get)(),
+    (0, swagger_1.ApiOperation)({ summary: "Get analytics by organization" }),
+    (0, swagger_1.ApiQuery)({ name: "orgId", type: String, required: true }),
+    (0, swagger_1.ApiQuery)({ name: "range", required: false, enum: ["week", "month"] }),
+    (0, swagger_1.ApiQuery)({ name: "filter", required: false, enum: ["all", "late", "early", "absent"] }),
+    (0, swagger_1.ApiOkResponse)({ description: "Analytics payload returned" }),
+    (0, swagger_1.ApiForbiddenResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("view_analytics"),
     __param(0, (0, common_1.Query)("orgId")),
@@ -53,6 +60,8 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AnalyticsController.prototype, "getAnalytics", null);
 exports.AnalyticsController = AnalyticsController = __decorate([
+    (0, swagger_1.ApiTags)("Analytics"),
+    (0, swagger_1.ApiCookieAuth)("cookieAuth"),
     (0, common_1.Controller)("analytics"),
     __metadata("design:paramtypes", [analytics_service_1.AnalyticsService])
 ], AnalyticsController);

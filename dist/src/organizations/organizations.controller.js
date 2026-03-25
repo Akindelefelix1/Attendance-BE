@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.OrganizationsController = void 0;
 const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
+const swagger_1 = require("@nestjs/swagger");
 const organizations_service_1 = require("./organizations.service");
 const permissions_decorator_1 = require("../auth/permissions.decorator");
 const permissions_guard_1 = require("../auth/permissions.guard");
@@ -79,6 +80,10 @@ let OrganizationsController = class OrganizationsController {
 exports.OrganizationsController = OrganizationsController;
 __decorate([
     (0, common_1.Get)(),
+    (0, swagger_1.ApiOperation)({ summary: "List organizations" }),
+    (0, swagger_1.ApiCookieAuth)("cookieAuth"),
+    (0, swagger_1.ApiOkResponse)({ description: "Organizations returned" }),
+    (0, swagger_1.ApiForbiddenResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt")),
     __param(0, (0, common_1.Req)()),
     __metadata("design:type", Function),
@@ -87,6 +92,11 @@ __decorate([
 ], OrganizationsController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Get)(":id"),
+    (0, swagger_1.ApiOperation)({ summary: "Get organization by id" }),
+    (0, swagger_1.ApiCookieAuth)("cookieAuth"),
+    (0, swagger_1.ApiParam)({ name: "id", type: String }),
+    (0, swagger_1.ApiOkResponse)({ description: "Organization returned" }),
+    (0, swagger_1.ApiForbiddenResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt")),
     __param(0, (0, common_1.Param)("id")),
     __param(1, (0, common_1.Req)()),
@@ -96,6 +106,30 @@ __decorate([
 ], OrganizationsController.prototype, "findOne", null);
 __decorate([
     (0, common_1.Post)(),
+    (0, swagger_1.ApiOperation)({ summary: "Create organization" }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: "object",
+            required: ["name", "location"],
+            properties: {
+                name: { type: "string" },
+                location: { type: "string" },
+                lateAfterTime: { type: "string", example: "09:00" },
+                earlyCheckoutBeforeTime: { type: "string", example: "17:00" },
+                officeGeoFenceEnabled: { type: "boolean" },
+                officeLatitude: { type: "number", nullable: true },
+                officeLongitude: { type: "number", nullable: true },
+                officeRadiusMeters: { type: "number" },
+                roles: { type: "array", items: { type: "string" } },
+                workingDays: { type: "array", items: { type: "number" } },
+                analyticsIncludeFutureDays: { type: "boolean" },
+                attendanceEditPolicy: { type: "string", enum: ["any", "self_only"] },
+                adminEmails: { type: "array", items: { type: "string", format: "email" } },
+                planTier: { type: "string", enum: ["free", "plus", "pro"] }
+            }
+        }
+    }),
+    (0, swagger_1.ApiCreatedResponse)({ description: "Organization created" }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
@@ -103,6 +137,32 @@ __decorate([
 ], OrganizationsController.prototype, "create", null);
 __decorate([
     (0, common_1.Patch)(":id"),
+    (0, swagger_1.ApiOperation)({ summary: "Update organization" }),
+    (0, swagger_1.ApiCookieAuth)("cookieAuth"),
+    (0, swagger_1.ApiParam)({ name: "id", type: String }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: "object",
+            properties: {
+                name: { type: "string" },
+                location: { type: "string" },
+                lateAfterTime: { type: "string", example: "09:00" },
+                earlyCheckoutBeforeTime: { type: "string", example: "17:00" },
+                officeGeoFenceEnabled: { type: "boolean" },
+                officeLatitude: { type: "number", nullable: true },
+                officeLongitude: { type: "number", nullable: true },
+                officeRadiusMeters: { type: "number" },
+                roles: { type: "array", items: { type: "string" } },
+                workingDays: { type: "array", items: { type: "number" } },
+                analyticsIncludeFutureDays: { type: "boolean" },
+                attendanceEditPolicy: { type: "string", enum: ["any", "self_only"] },
+                adminEmails: { type: "array", items: { type: "string", format: "email" } },
+                planTier: { type: "string", enum: ["free", "plus", "pro"] }
+            }
+        }
+    }),
+    (0, swagger_1.ApiOkResponse)({ description: "Organization updated" }),
+    (0, swagger_1.ApiForbiddenResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_organizations"),
     __param(0, (0, common_1.Param)("id")),
@@ -114,6 +174,11 @@ __decorate([
 ], OrganizationsController.prototype, "update", null);
 __decorate([
     (0, common_1.Delete)(":id"),
+    (0, swagger_1.ApiOperation)({ summary: "Delete organization" }),
+    (0, swagger_1.ApiCookieAuth)("cookieAuth"),
+    (0, swagger_1.ApiParam)({ name: "id", type: String }),
+    (0, swagger_1.ApiOkResponse)({ description: "Organization deleted" }),
+    (0, swagger_1.ApiForbiddenResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_organizations"),
     __param(0, (0, common_1.Param)("id")),
@@ -123,6 +188,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], OrganizationsController.prototype, "remove", null);
 exports.OrganizationsController = OrganizationsController = __decorate([
+    (0, swagger_1.ApiTags)("Organizations"),
     (0, common_1.Controller)("organizations"),
     __metadata("design:paramtypes", [organizations_service_1.OrganizationsService])
 ], OrganizationsController);
