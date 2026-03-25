@@ -6,6 +6,7 @@ export declare class AuthService {
     private readonly jwtService;
     constructor(prisma: PrismaService, jwtService: JwtService);
     private getAdminLimit;
+    private getCookieOptions;
     private setCookie;
     clearCookie(res: Response): void;
     registerAdmin(orgId: string, email: string, password: string, res: Response): Promise<{

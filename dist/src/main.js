@@ -12,7 +12,7 @@ async function bootstrap() {
     app.use((0, cookie_parser_1.default)());
     const configuredOrigins = (process.env.FRONTEND_ORIGIN ?? "")
         .split(",")
-        .map((origin) => origin.trim())
+        .map((origin) => origin.trim().replace(/\/$/, ""))
         .filter(Boolean);
     app.enableCors({
         origin: configuredOrigins.length > 0

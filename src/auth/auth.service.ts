@@ -5,6 +5,7 @@ import type { Permission } from "@prisma/client";
 import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../prisma/prisma.service";
 import * as crypto from "crypto";
+import type { CookieOptions } from "express";
 
 const COOKIE_NAME = "attendance_token";
 const ADMIN_PERMISSIONS = [
@@ -29,21 +30,44 @@ export class AuthService {
     return 1;
   }
 
-  private setCookie(res: Response, token: string) {
-    const cookieSameSite =
-      (process.env.COOKIE_SAME_SITE as "lax" | "strict" | "none" | undefined) ?? "lax";
-    const cookieSecure = (process.env.COOKIE_SECURE ?? "false").toLowerCase() === "true";
+  private getCookieOptions(): CookieOptions {
+    const isProduction = process.env.NODE_ENV === "production";
+    const configuredSameSite = process.env.COOKIE_SAME_SITE as
+      | "lax"
+      | "strict"
+      | "none"
+      | undefined;
+    const sameSite = configuredSameSite ?? (isProduction ? "none" : "lax");
 
-    res.cookie(COOKIE_NAME, token, {
+    const configuredSecure = process.env.COOKIE_SECURE;
+    const secure =
+      configuredSecure !== undefined
+        ? configuredSecure.toLowerCase() === "true"
+        : isProduction || sameSite === "none";
+
+    return {
       httpOnly: true,
-      sameSite: cookieSameSite,
-      secure: cookieSecure,
+      sameSite,
+      secure,
+      domain: process.env.COOKIE_DOMAIN || undefined,
+      path: process.env.COOKIE_PATH || "/",
       maxAge: 1000 * 60 * 60 * 24 * 7
-    });
+    };
+  }
+
+  private setCookie(res: Response, token: string) {
+    res.cookie(COOKIE_NAME, token, this.getCookieOptions());
   }
 
   clearCookie(res: Response) {
-    res.clearCookie(COOKIE_NAME);
+    const cookieOptions = this.getCookieOptions();
+    res.clearCookie(COOKIE_NAME, {
+      httpOnly: cookieOptions.httpOnly,
+      sameSite: cookieOptions.sameSite,
+      secure: cookieOptions.secure,
+      domain: cookieOptions.domain,
+      path: cookieOptions.path
+    });
   }
 
   async registerAdmin(orgId: string, email: string, password: string, res: Response) {

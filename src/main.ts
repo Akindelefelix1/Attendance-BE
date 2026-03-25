@@ -8,7 +8,7 @@ async function bootstrap() {
   app.use(cookieParser());
   const configuredOrigins = (process.env.FRONTEND_ORIGIN ?? "")
     .split(",")
-    .map((origin) => origin.trim())
+    .map((origin) => origin.trim().replace(/\/$/, ""))
     .filter(Boolean);
 
   app.enableCors({

@@ -71,18 +71,35 @@ let AuthService = class AuthService {
             return 3;
         return 1;
     }
-    setCookie(res, token) {
-        const cookieSameSite = process.env.COOKIE_SAME_SITE ?? "lax";
-        const cookieSecure = (process.env.COOKIE_SECURE ?? "false").toLowerCase() === "true";
-        res.cookie(COOKIE_NAME, token, {
+    getCookieOptions() {
+        const isProduction = process.env.NODE_ENV === "production";
+        const configuredSameSite = process.env.COOKIE_SAME_SITE;
+        const sameSite = configuredSameSite ?? (isProduction ? "none" : "lax");
+        const configuredSecure = process.env.COOKIE_SECURE;
+        const secure = configuredSecure !== undefined
+            ? configuredSecure.toLowerCase() === "true"
+            : isProduction || sameSite === "none";
+        return {
             httpOnly: true,
-            sameSite: cookieSameSite,
-            secure: cookieSecure,
+            sameSite,
+            secure,
+            domain: process.env.COOKIE_DOMAIN || undefined,
+            path: process.env.COOKIE_PATH || "/",
             maxAge: 1000 * 60 * 60 * 24 * 7
-        });
+        };
+    }
+    setCookie(res, token) {
+        res.cookie(COOKIE_NAME, token, this.getCookieOptions());
     }
     clearCookie(res) {
-        res.clearCookie(COOKIE_NAME);
+        const cookieOptions = this.getCookieOptions();
+        res.clearCookie(COOKIE_NAME, {
+            httpOnly: cookieOptions.httpOnly,
+            sameSite: cookieOptions.sameSite,
+            secure: cookieOptions.secure,
+            domain: cookieOptions.domain,
+            path: cookieOptions.path
+        });
     }
     async registerAdmin(orgId, email, password, res) {
         const organization = await this.prisma.organization.findUnique({
