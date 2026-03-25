@@ -11,10 +11,21 @@ import {
   UseGuards
 } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
+import {
+  ApiBody,
+  ApiCookieAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+  ApiUnauthorizedResponse
+} from "@nestjs/swagger";
 import { StaffService } from "./staff.service";
 import { Permissions } from "../auth/permissions.decorator";
 import { PermissionsGuard } from "../auth/permissions.guard";
 
+@ApiTags("Staff")
+@ApiCookieAuth("cookieAuth")
 @Controller("staff")
 export class StaffController {
   constructor(private readonly staffService: StaffService) {}
@@ -35,6 +46,10 @@ export class StaffController {
   }
 
   @Get("organization/:orgId")
+  @ApiOperation({ summary: "List staff by organization" })
+  @ApiParam({ name: "orgId", type: String })
+  @ApiOkResponse({ description: "Staff list returned" })
+  @ApiUnauthorizedResponse({ description: "Authentication/authorization failed" })
   @UseGuards(AuthGuard("jwt"), PermissionsGuard)
   @Permissions("manage_staff")
   listByOrganization(
@@ -46,6 +61,21 @@ export class StaffController {
   }
 
   @Post()
+  @ApiOperation({ summary: "Create staff member" })
+  @ApiBody({
+    schema: {
+      type: "object",
+      required: ["organizationId", "fullName", "role", "email"],
+      properties: {
+        organizationId: { type: "string" },
+        fullName: { type: "string" },
+        role: { type: "string" },
+        email: { type: "string", format: "email" }
+      }
+    }
+  })
+  @ApiOkResponse({ description: "Staff member created" })
+  @ApiUnauthorizedResponse({ description: "Authentication/authorization failed" })
   @UseGuards(AuthGuard("jwt"), PermissionsGuard)
   @Permissions("manage_staff")
   create(
@@ -62,6 +92,20 @@ export class StaffController {
   }
 
   @Patch(":id")
+  @ApiOperation({ summary: "Update staff member" })
+  @ApiParam({ name: "id", type: String })
+  @ApiBody({
+    schema: {
+      type: "object",
+      properties: {
+        fullName: { type: "string" },
+        role: { type: "string" },
+        email: { type: "string", format: "email" }
+      }
+    }
+  })
+  @ApiOkResponse({ description: "Staff member updated" })
+  @ApiUnauthorizedResponse({ description: "Authentication/authorization failed" })
   @UseGuards(AuthGuard("jwt"), PermissionsGuard)
   @Permissions("manage_staff")
   update(
@@ -76,6 +120,10 @@ export class StaffController {
   }
 
   @Delete(":id")
+  @ApiOperation({ summary: "Delete staff member" })
+  @ApiParam({ name: "id", type: String })
+  @ApiOkResponse({ description: "Staff member deleted" })
+  @ApiUnauthorizedResponse({ description: "Authentication/authorization failed" })
   @UseGuards(AuthGuard("jwt"), PermissionsGuard)
   @Permissions("manage_staff")
   remove(

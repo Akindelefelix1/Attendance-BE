@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthController = void 0;
 const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
+const swagger_1 = require("@nestjs/swagger");
 const auth_service_1 = require("./auth.service");
 let AuthController = class AuthController {
     authService;
@@ -55,6 +56,19 @@ let AuthController = class AuthController {
 exports.AuthController = AuthController;
 __decorate([
     (0, common_1.Post)("login"),
+    (0, swagger_1.ApiOperation)({ summary: "Admin login" }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: "object",
+            required: ["email", "password"],
+            properties: {
+                email: { type: "string", format: "email" },
+                password: { type: "string" }
+            }
+        }
+    }),
+    (0, swagger_1.ApiOkResponse)({ description: "Admin authenticated successfully" }),
+    (0, swagger_1.ApiUnauthorizedResponse)({ description: "Invalid credentials" }),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
@@ -63,6 +77,19 @@ __decorate([
 ], AuthController.prototype, "login", null);
 __decorate([
     (0, common_1.Post)("staff/login"),
+    (0, swagger_1.ApiOperation)({ summary: "Staff login" }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: "object",
+            required: ["email", "password"],
+            properties: {
+                email: { type: "string", format: "email" },
+                password: { type: "string" }
+            }
+        }
+    }),
+    (0, swagger_1.ApiOkResponse)({ description: "Staff authenticated successfully" }),
+    (0, swagger_1.ApiUnauthorizedResponse)({ description: "Invalid credentials" }),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
@@ -71,6 +98,17 @@ __decorate([
 ], AuthController.prototype, "staffLogin", null);
 __decorate([
     (0, common_1.Post)("staff/request-verify"),
+    (0, swagger_1.ApiOperation)({ summary: "Request staff verification token" }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: "object",
+            required: ["email"],
+            properties: {
+                email: { type: "string", format: "email" }
+            }
+        }
+    }),
+    (0, swagger_1.ApiOkResponse)({ description: "Verification request accepted" }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
@@ -78,6 +116,18 @@ __decorate([
 ], AuthController.prototype, "requestVerify", null);
 __decorate([
     (0, common_1.Post)("staff/verify"),
+    (0, swagger_1.ApiOperation)({ summary: "Verify staff account" }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: "object",
+            required: ["token"],
+            properties: {
+                token: { type: "string" }
+            }
+        }
+    }),
+    (0, swagger_1.ApiOkResponse)({ description: "Staff account verified" }),
+    (0, swagger_1.ApiUnauthorizedResponse)({ description: "Invalid token" }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
@@ -85,6 +135,17 @@ __decorate([
 ], AuthController.prototype, "verify", null);
 __decorate([
     (0, common_1.Post)("staff/request-reset"),
+    (0, swagger_1.ApiOperation)({ summary: "Request staff password reset token" }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: "object",
+            required: ["email"],
+            properties: {
+                email: { type: "string", format: "email" }
+            }
+        }
+    }),
+    (0, swagger_1.ApiOkResponse)({ description: "Password reset request accepted" }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
@@ -92,6 +153,19 @@ __decorate([
 ], AuthController.prototype, "requestReset", null);
 __decorate([
     (0, common_1.Post)("staff/reset"),
+    (0, swagger_1.ApiOperation)({ summary: "Reset staff password" }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: "object",
+            required: ["token", "password"],
+            properties: {
+                token: { type: "string" },
+                password: { type: "string" }
+            }
+        }
+    }),
+    (0, swagger_1.ApiOkResponse)({ description: "Password reset successful" }),
+    (0, swagger_1.ApiUnauthorizedResponse)({ description: "Invalid or expired token" }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
@@ -99,6 +173,20 @@ __decorate([
 ], AuthController.prototype, "reset", null);
 __decorate([
     (0, common_1.Post)("register"),
+    (0, swagger_1.ApiOperation)({ summary: "Register organization admin" }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: "object",
+            required: ["orgId", "email", "password"],
+            properties: {
+                orgId: { type: "string" },
+                email: { type: "string", format: "email" },
+                password: { type: "string" }
+            }
+        }
+    }),
+    (0, swagger_1.ApiOkResponse)({ description: "Admin registered successfully" }),
+    (0, swagger_1.ApiUnauthorizedResponse)({ description: "Organization not found or plan limit reached" }),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
@@ -107,6 +195,10 @@ __decorate([
 ], AuthController.prototype, "register", null);
 __decorate([
     (0, common_1.Get)("me"),
+    (0, swagger_1.ApiOperation)({ summary: "Get current authenticated user" }),
+    (0, swagger_1.ApiCookieAuth)("cookieAuth"),
+    (0, swagger_1.ApiOkResponse)({ description: "Authenticated user payload" }),
+    (0, swagger_1.ApiUnauthorizedResponse)({ description: "Authentication required" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt")),
     __param(0, (0, common_1.Req)()),
     __metadata("design:type", Function),
@@ -115,12 +207,16 @@ __decorate([
 ], AuthController.prototype, "me", null);
 __decorate([
     (0, common_1.Post)("logout"),
+    (0, swagger_1.ApiOperation)({ summary: "Logout current user" }),
+    (0, swagger_1.ApiCookieAuth)("cookieAuth"),
+    (0, swagger_1.ApiOkResponse)({ description: "Session cookie cleared" }),
     __param(0, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], AuthController.prototype, "logout", null);
 exports.AuthController = AuthController = __decorate([
+    (0, swagger_1.ApiTags)("Auth"),
     (0, common_1.Controller)("auth"),
     __metadata("design:paramtypes", [auth_service_1.AuthService])
 ], AuthController);

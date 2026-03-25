@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AttendanceController = void 0;
 const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
+const swagger_1 = require("@nestjs/swagger");
 const attendance_service_1 = require("./attendance.service");
 const permissions_decorator_1 = require("../auth/permissions.decorator");
 const permissions_guard_1 = require("../auth/permissions.guard");
@@ -60,6 +61,11 @@ let AttendanceController = class AttendanceController {
 exports.AttendanceController = AttendanceController;
 __decorate([
     (0, common_1.Get)(),
+    (0, swagger_1.ApiOperation)({ summary: "List attendance by organization and date" }),
+    (0, swagger_1.ApiQuery)({ name: "orgId", type: String, required: true }),
+    (0, swagger_1.ApiQuery)({ name: "dateISO", type: String, required: true }),
+    (0, swagger_1.ApiOkResponse)({ description: "Attendance records returned" }),
+    (0, swagger_1.ApiUnauthorizedResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_attendance"),
     __param(0, (0, common_1.Query)("orgId")),
@@ -71,6 +77,10 @@ __decorate([
 ], AttendanceController.prototype, "list", null);
 __decorate([
     (0, common_1.Get)("organization/:orgId"),
+    (0, swagger_1.ApiOperation)({ summary: "List attendance for organization" }),
+    (0, swagger_1.ApiParam)({ name: "orgId", type: String }),
+    (0, swagger_1.ApiOkResponse)({ description: "Attendance records returned" }),
+    (0, swagger_1.ApiUnauthorizedResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_attendance"),
     __param(0, (0, common_1.Param)("orgId")),
@@ -81,6 +91,22 @@ __decorate([
 ], AttendanceController.prototype, "listForOrganization", null);
 __decorate([
     (0, common_1.Post)("sign-in"),
+    (0, swagger_1.ApiOperation)({ summary: "Sign in staff attendance" }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: "object",
+            required: ["organizationId", "staffId", "dateISO"],
+            properties: {
+                organizationId: { type: "string" },
+                staffId: { type: "string" },
+                dateISO: { type: "string", example: "2026-03-25" },
+                latitude: { type: "number" },
+                longitude: { type: "number" }
+            }
+        }
+    }),
+    (0, swagger_1.ApiOkResponse)({ description: "Sign-in recorded" }),
+    (0, swagger_1.ApiUnauthorizedResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_attendance"),
     __param(0, (0, common_1.Body)()),
@@ -91,6 +117,22 @@ __decorate([
 ], AttendanceController.prototype, "signIn", null);
 __decorate([
     (0, common_1.Post)("sign-out"),
+    (0, swagger_1.ApiOperation)({ summary: "Sign out staff attendance" }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: "object",
+            required: ["organizationId", "staffId", "dateISO"],
+            properties: {
+                organizationId: { type: "string" },
+                staffId: { type: "string" },
+                dateISO: { type: "string", example: "2026-03-25" },
+                latitude: { type: "number" },
+                longitude: { type: "number" }
+            }
+        }
+    }),
+    (0, swagger_1.ApiOkResponse)({ description: "Sign-out recorded" }),
+    (0, swagger_1.ApiUnauthorizedResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_attendance"),
     __param(0, (0, common_1.Body)()),
@@ -100,6 +142,8 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AttendanceController.prototype, "signOut", null);
 exports.AttendanceController = AttendanceController = __decorate([
+    (0, swagger_1.ApiTags)("Attendance"),
+    (0, swagger_1.ApiCookieAuth)("cookieAuth"),
     (0, common_1.Controller)("attendance"),
     __metadata("design:paramtypes", [attendance_service_1.AttendanceService])
 ], AttendanceController);

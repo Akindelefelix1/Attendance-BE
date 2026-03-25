@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.StaffController = void 0;
 const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
+const swagger_1 = require("@nestjs/swagger");
 const staff_service_1 = require("./staff.service");
 const permissions_decorator_1 = require("../auth/permissions.decorator");
 const permissions_guard_1 = require("../auth/permissions.guard");
@@ -62,6 +63,10 @@ let StaffController = class StaffController {
 exports.StaffController = StaffController;
 __decorate([
     (0, common_1.Get)("organization/:orgId"),
+    (0, swagger_1.ApiOperation)({ summary: "List staff by organization" }),
+    (0, swagger_1.ApiParam)({ name: "orgId", type: String }),
+    (0, swagger_1.ApiOkResponse)({ description: "Staff list returned" }),
+    (0, swagger_1.ApiUnauthorizedResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_staff"),
     __param(0, (0, common_1.Param)("orgId")),
@@ -72,6 +77,21 @@ __decorate([
 ], StaffController.prototype, "listByOrganization", null);
 __decorate([
     (0, common_1.Post)(),
+    (0, swagger_1.ApiOperation)({ summary: "Create staff member" }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: "object",
+            required: ["organizationId", "fullName", "role", "email"],
+            properties: {
+                organizationId: { type: "string" },
+                fullName: { type: "string" },
+                role: { type: "string" },
+                email: { type: "string", format: "email" }
+            }
+        }
+    }),
+    (0, swagger_1.ApiOkResponse)({ description: "Staff member created" }),
+    (0, swagger_1.ApiUnauthorizedResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_staff"),
     __param(0, (0, common_1.Req)()),
@@ -82,6 +102,20 @@ __decorate([
 ], StaffController.prototype, "create", null);
 __decorate([
     (0, common_1.Patch)(":id"),
+    (0, swagger_1.ApiOperation)({ summary: "Update staff member" }),
+    (0, swagger_1.ApiParam)({ name: "id", type: String }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: "object",
+            properties: {
+                fullName: { type: "string" },
+                role: { type: "string" },
+                email: { type: "string", format: "email" }
+            }
+        }
+    }),
+    (0, swagger_1.ApiOkResponse)({ description: "Staff member updated" }),
+    (0, swagger_1.ApiUnauthorizedResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_staff"),
     __param(0, (0, common_1.Param)("id")),
@@ -93,6 +127,10 @@ __decorate([
 ], StaffController.prototype, "update", null);
 __decorate([
     (0, common_1.Delete)(":id"),
+    (0, swagger_1.ApiOperation)({ summary: "Delete staff member" }),
+    (0, swagger_1.ApiParam)({ name: "id", type: String }),
+    (0, swagger_1.ApiOkResponse)({ description: "Staff member deleted" }),
+    (0, swagger_1.ApiUnauthorizedResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_staff"),
     __param(0, (0, common_1.Param)("id")),
@@ -102,6 +140,8 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], StaffController.prototype, "remove", null);
 exports.StaffController = StaffController = __decorate([
+    (0, swagger_1.ApiTags)("Staff"),
+    (0, swagger_1.ApiCookieAuth)("cookieAuth"),
     (0, common_1.Controller)("staff"),
     __metadata("design:paramtypes", [staff_service_1.StaffService])
 ], StaffController);
