@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "nest build",
+    "build": "prisma generate && nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "prisma generate && nest start",
     "start:dev": "prisma generate && nest start --watch",
@@ -32,6 +32,7 @@
     "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
     "@types/pg": "^8.18.0",
+    "attendance-web": "file:../Attendance",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "passport": "^0.7.0",
