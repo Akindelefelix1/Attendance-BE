@@ -58,16 +58,6 @@ exports.AuthController = AuthController;
 __decorate([
     (0, common_1.Post)("login"),
     (0, swagger_1.ApiOperation)({ summary: "Admin login" }),
-    (0, swagger_1.ApiBody)({
-        schema: {
-            type: "object",
-            required: ["email", "password"],
-            properties: {
-                email: { type: "string", format: "email" },
-                password: { type: "string" }
-            }
-        }
-    }),
     (0, swagger_1.ApiOkResponse)({ description: "Admin authenticated successfully" }),
     (0, swagger_1.ApiUnauthorizedResponse)({ description: "Invalid credentials" }),
     __param(0, (0, common_1.Body)()),
@@ -79,16 +69,6 @@ __decorate([
 __decorate([
     (0, common_1.Post)("staff/login"),
     (0, swagger_1.ApiOperation)({ summary: "Staff login" }),
-    (0, swagger_1.ApiBody)({
-        schema: {
-            type: "object",
-            required: ["email", "password"],
-            properties: {
-                email: { type: "string", format: "email" },
-                password: { type: "string" }
-            }
-        }
-    }),
     (0, swagger_1.ApiOkResponse)({ description: "Staff authenticated successfully" }),
     (0, swagger_1.ApiUnauthorizedResponse)({ description: "Invalid credentials" }),
     __param(0, (0, common_1.Body)()),
@@ -100,15 +80,6 @@ __decorate([
 __decorate([
     (0, common_1.Post)("staff/request-verify"),
     (0, swagger_1.ApiOperation)({ summary: "Request staff verification token" }),
-    (0, swagger_1.ApiBody)({
-        schema: {
-            type: "object",
-            required: ["email"],
-            properties: {
-                email: { type: "string", format: "email" }
-            }
-        }
-    }),
     (0, swagger_1.ApiOkResponse)({ description: "Verification request accepted" }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -118,15 +89,6 @@ __decorate([
 __decorate([
     (0, common_1.Post)("staff/verify"),
     (0, swagger_1.ApiOperation)({ summary: "Verify staff account" }),
-    (0, swagger_1.ApiBody)({
-        schema: {
-            type: "object",
-            required: ["token"],
-            properties: {
-                token: { type: "string" }
-            }
-        }
-    }),
     (0, swagger_1.ApiOkResponse)({ description: "Staff account verified" }),
     (0, swagger_1.ApiUnauthorizedResponse)({ description: "Invalid token" }),
     __param(0, (0, common_1.Body)()),
@@ -137,15 +99,6 @@ __decorate([
 __decorate([
     (0, common_1.Post)("staff/request-reset"),
     (0, swagger_1.ApiOperation)({ summary: "Request staff password reset token" }),
-    (0, swagger_1.ApiBody)({
-        schema: {
-            type: "object",
-            required: ["email"],
-            properties: {
-                email: { type: "string", format: "email" }
-            }
-        }
-    }),
     (0, swagger_1.ApiOkResponse)({ description: "Password reset request accepted" }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -155,16 +108,6 @@ __decorate([
 __decorate([
     (0, common_1.Post)("staff/reset"),
     (0, swagger_1.ApiOperation)({ summary: "Reset staff password" }),
-    (0, swagger_1.ApiBody)({
-        schema: {
-            type: "object",
-            required: ["token", "password"],
-            properties: {
-                token: { type: "string" },
-                password: { type: "string" }
-            }
-        }
-    }),
     (0, swagger_1.ApiOkResponse)({ description: "Password reset successful" }),
     (0, swagger_1.ApiUnauthorizedResponse)({ description: "Invalid or expired token" }),
     __param(0, (0, common_1.Body)()),
@@ -175,17 +118,6 @@ __decorate([
 __decorate([
     (0, common_1.Post)("register"),
     (0, swagger_1.ApiOperation)({ summary: "Register organization admin" }),
-    (0, swagger_1.ApiBody)({
-        schema: {
-            type: "object",
-            required: ["orgId", "email", "password"],
-            properties: {
-                orgId: { type: "string" },
-                email: { type: "string", format: "email" },
-                password: { type: "string" }
-            }
-        }
-    }),
     (0, swagger_1.ApiOkResponse)({ description: "Admin registered successfully" }),
     (0, swagger_1.ApiUnauthorizedResponse)({ description: "Organization not found or plan limit reached" }),
     __param(0, (0, common_1.Body)()),

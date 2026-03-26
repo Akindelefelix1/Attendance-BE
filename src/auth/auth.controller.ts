@@ -1,7 +1,6 @@
 import { Body, Controller, Get, Post, Req, Res, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
 import {
-  ApiBody,
   ApiCookieAuth,
   ApiOkResponse,
   ApiOperation,
@@ -26,16 +25,6 @@ export class AuthController {
 
   @Post("login")
   @ApiOperation({ summary: "Admin login" })
-  @ApiBody({
-    schema: {
-      type: "object",
-      required: ["email", "password"],
-      properties: {
-        email: { type: "string", format: "email" },
-        password: { type: "string" }
-      }
-    }
-  })
   @ApiOkResponse({ description: "Admin authenticated successfully" })
   @ApiUnauthorizedResponse({ description: "Invalid credentials" })
   async login(
@@ -48,16 +37,6 @@ export class AuthController {
 
   @Post("staff/login")
   @ApiOperation({ summary: "Staff login" })
-  @ApiBody({
-    schema: {
-      type: "object",
-      required: ["email", "password"],
-      properties: {
-        email: { type: "string", format: "email" },
-        password: { type: "string" }
-      }
-    }
-  })
   @ApiOkResponse({ description: "Staff authenticated successfully" })
   @ApiUnauthorizedResponse({ description: "Invalid credentials" })
   async staffLogin(
@@ -69,15 +48,6 @@ export class AuthController {
 
   @Post("staff/request-verify")
   @ApiOperation({ summary: "Request staff verification token" })
-  @ApiBody({
-    schema: {
-      type: "object",
-      required: ["email"],
-      properties: {
-        email: { type: "string", format: "email" }
-      }
-    }
-  })
   @ApiOkResponse({ description: "Verification request accepted" })
   requestVerify(@Body() body: RequestEmailDto) {
     return this.authService.requestStaffVerify(body.email);
@@ -85,15 +55,6 @@ export class AuthController {
 
   @Post("staff/verify")
   @ApiOperation({ summary: "Verify staff account" })
-  @ApiBody({
-    schema: {
-      type: "object",
-      required: ["token"],
-      properties: {
-        token: { type: "string" }
-      }
-    }
-  })
   @ApiOkResponse({ description: "Staff account verified" })
   @ApiUnauthorizedResponse({ description: "Invalid token" })
   verify(@Body() body: VerifyTokenDto) {
@@ -102,15 +63,6 @@ export class AuthController {
 
   @Post("staff/request-reset")
   @ApiOperation({ summary: "Request staff password reset token" })
-  @ApiBody({
-    schema: {
-      type: "object",
-      required: ["email"],
-      properties: {
-        email: { type: "string", format: "email" }
-      }
-    }
-  })
   @ApiOkResponse({ description: "Password reset request accepted" })
   requestReset(@Body() body: RequestEmailDto) {
     return this.authService.requestStaffReset(body.email);
@@ -118,16 +70,6 @@ export class AuthController {
 
   @Post("staff/reset")
   @ApiOperation({ summary: "Reset staff password" })
-  @ApiBody({
-    schema: {
-      type: "object",
-      required: ["token", "password"],
-      properties: {
-        token: { type: "string" },
-        password: { type: "string" }
-      }
-    }
-  })
   @ApiOkResponse({ description: "Password reset successful" })
   @ApiUnauthorizedResponse({ description: "Invalid or expired token" })
   reset(@Body() body: ResetPasswordDto) {
@@ -136,17 +78,6 @@ export class AuthController {
 
   @Post("register")
   @ApiOperation({ summary: "Register organization admin" })
-  @ApiBody({
-    schema: {
-      type: "object",
-      required: ["orgId", "email", "password"],
-      properties: {
-        orgId: { type: "string" },
-        email: { type: "string", format: "email" },
-        password: { type: "string" }
-      }
-    }
-  })
   @ApiOkResponse({ description: "Admin registered successfully" })
   @ApiUnauthorizedResponse({ description: "Organization not found or plan limit reached" })
   async register(
