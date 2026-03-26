@@ -55,6 +55,14 @@ let DisposableAttendanceController = class DisposableAttendanceController {
         this.assertOrgScope(orgId, req.user);
         return this.disposableService.listResponses(id, orgId);
     }
+    getResponsesTable(id, orgId, req) {
+        this.assertOrgScope(orgId, req.user);
+        return this.disposableService.getResponsesTable(id, orgId);
+    }
+    updateFields(id, body, req) {
+        this.assertOrgScope(body.orgId, req.user);
+        return this.disposableService.updateCollectedFields(id, body.orgId, body.fields);
+    }
     submitAdminResponse(id, body, req) {
         this.assertOrgScope(body.orgId, req.user);
         return this.disposableService.submitAdminResponse(id, body.orgId, body.values, req.user?.id ?? "");
@@ -163,6 +171,60 @@ __decorate([
     __metadata("design:paramtypes", [String, String, Object]),
     __metadata("design:returntype", void 0)
 ], DisposableAttendanceController.prototype, "listResponses", null);
+__decorate([
+    (0, common_1.Get)("disposable-attendance/:id/responses-table"),
+    (0, swagger_1.ApiCookieAuth)("cookieAuth"),
+    (0, swagger_1.ApiOperation)({ summary: "Get disposable attendance responses formatted for table rendering" }),
+    (0, swagger_1.ApiParam)({ name: "id", type: String }),
+    (0, swagger_1.ApiQuery)({ name: "orgId", type: String, required: true }),
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
+    (0, permissions_decorator_1.Permissions)("manage_attendance"),
+    __param(0, (0, common_1.Param)("id")),
+    __param(1, (0, common_1.Query)("orgId")),
+    __param(2, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:returntype", void 0)
+], DisposableAttendanceController.prototype, "getResponsesTable", null);
+__decorate([
+    (0, common_1.Patch)("disposable-attendance/:id/fields"),
+    (0, swagger_1.ApiCookieAuth)("cookieAuth"),
+    (0, swagger_1.ApiOperation)({ summary: "Update collected details (fields) for a disposable attendance" }),
+    (0, swagger_1.ApiParam)({ name: "id", type: String }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: "object",
+            required: ["orgId", "fields"],
+            properties: {
+                orgId: { type: "string" },
+                fields: {
+                    type: "array",
+                    items: {
+                        type: "object",
+                        required: ["id", "label", "type", "required"],
+                        properties: {
+                            id: { type: "string" },
+                            label: { type: "string" },
+                            type: {
+                                type: "string",
+                                enum: ["full-name", "email", "phone", "occupation", "address", "text"]
+                            },
+                            required: { type: "boolean" }
+                        }
+                    }
+                }
+            }
+        }
+    }),
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
+    (0, permissions_decorator_1.Permissions)("manage_attendance"),
+    __param(0, (0, common_1.Param)("id")),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:returntype", void 0)
+], DisposableAttendanceController.prototype, "updateFields", null);
 __decorate([
     (0, common_1.Post)("disposable-attendance/:id/responses/admin"),
     (0, swagger_1.ApiCookieAuth)("cookieAuth"),

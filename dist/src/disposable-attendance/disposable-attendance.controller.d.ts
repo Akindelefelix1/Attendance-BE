@@ -139,6 +139,60 @@ export declare class DisposableAttendanceController {
         submittedAtISO: string;
         values: Record<string, string>;
     }[]>;
+    getResponsesTable(id: string, orgId: string, req: {
+        user?: {
+            orgId?: string;
+            role?: string;
+        };
+    }): Promise<{
+        attendanceId: string;
+        attendanceTitle: string;
+        columns: {
+            key: string;
+            label: string;
+        }[];
+        rows: {
+            id: string;
+            submittedAtISO: string;
+            source: string;
+            values: Record<string, string>;
+        }[];
+    }>;
+    updateFields(id: string, body: {
+        orgId: string;
+        fields: Array<{
+            id: string;
+            label: string;
+            type: "full-name" | "email" | "phone" | "occupation" | "address" | "text";
+            required: boolean;
+        }>;
+    }, req: {
+        user?: {
+            orgId?: string;
+            role?: string;
+        };
+    }): Promise<{
+        id: string;
+        publicId: string;
+        orgId: string;
+        title: string;
+        description: string;
+        location: string;
+        eventDateISO: string;
+        fields: {
+            id: string;
+            label: string;
+            type: "email" | "full-name" | "phone" | "occupation" | "address" | "text";
+            required: boolean;
+        }[];
+        isRecurring: boolean;
+        recurrenceMode: import("@prisma/client").$Enums.DisposableRecurrenceMode;
+        recurrenceEndDateISO: string | null;
+        recurrenceCustomRule: string;
+        isArchived: boolean;
+        createdAtISO: string;
+        updatedAtISO: string;
+    }>;
     submitAdminResponse(id: string, body: {
         orgId: string;
         values: Record<string, string>;

@@ -177,6 +177,71 @@ export class DisposableAttendanceController {
     return this.disposableService.listResponses(id, orgId);
   }
 
+  @Get("disposable-attendance/:id/responses-table")
+  @ApiCookieAuth("cookieAuth")
+  @ApiOperation({ summary: "Get disposable attendance responses formatted for table rendering" })
+  @ApiParam({ name: "id", type: String })
+  @ApiQuery({ name: "orgId", type: String, required: true })
+  @UseGuards(AuthGuard("jwt"), PermissionsGuard)
+  @Permissions("manage_attendance")
+  getResponsesTable(
+    @Param("id") id: string,
+    @Query("orgId") orgId: string,
+    @Req() req: { user?: { orgId?: string; role?: string } }
+  ) {
+    this.assertOrgScope(orgId, req.user);
+    return this.disposableService.getResponsesTable(id, orgId);
+  }
+
+  @Patch("disposable-attendance/:id/fields")
+  @ApiCookieAuth("cookieAuth")
+  @ApiOperation({ summary: "Update collected details (fields) for a disposable attendance" })
+  @ApiParam({ name: "id", type: String })
+  @ApiBody({
+    schema: {
+      type: "object",
+      required: ["orgId", "fields"],
+      properties: {
+        orgId: { type: "string" },
+        fields: {
+          type: "array",
+          items: {
+            type: "object",
+            required: ["id", "label", "type", "required"],
+            properties: {
+              id: { type: "string" },
+              label: { type: "string" },
+              type: {
+                type: "string",
+                enum: ["full-name", "email", "phone", "occupation", "address", "text"]
+              },
+              required: { type: "boolean" }
+            }
+          }
+        }
+      }
+    }
+  })
+  @UseGuards(AuthGuard("jwt"), PermissionsGuard)
+  @Permissions("manage_attendance")
+  updateFields(
+    @Param("id") id: string,
+    @Body()
+    body: {
+      orgId: string;
+      fields: Array<{
+        id: string;
+        label: string;
+        type: "full-name" | "email" | "phone" | "occupation" | "address" | "text";
+        required: boolean;
+      }>;
+    },
+    @Req() req: { user?: { orgId?: string; role?: string } }
+  ) {
+    this.assertOrgScope(body.orgId, req.user);
+    return this.disposableService.updateCollectedFields(id, body.orgId, body.fields);
+  }
+
   @Post("disposable-attendance/:id/responses/admin")
   @ApiCookieAuth("cookieAuth")
   @ApiOperation({ summary: "Submit admin/manual disposable attendance response" })

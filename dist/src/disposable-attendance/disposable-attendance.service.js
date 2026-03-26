@@ -261,6 +261,71 @@ let DisposableAttendanceService = class DisposableAttendanceService {
             values: (item.values ?? {})
         }));
     }
+    async updateCollectedFields(attendanceId, orgId, fields) {
+        this.validateFields(fields);
+        const existing = await this.prisma.disposableAttendance.findUnique({
+            where: { id: attendanceId }
+        });
+        if (!existing || existing.organizationId !== orgId) {
+            throw new common_1.NotFoundException("Disposable attendance not found");
+        }
+        const updated = await this.prisma.disposableAttendance.update({
+            where: { id: attendanceId },
+            data: {
+                fields: fields
+            }
+        });
+        return {
+            id: updated.id,
+            publicId: updated.publicId,
+            orgId: updated.organizationId,
+            title: updated.title,
+            description: updated.description,
+            location: updated.location,
+            eventDateISO: updated.eventDateISO,
+            fields: this.asFieldArray(updated.fields),
+            isRecurring: updated.isRecurring,
+            recurrenceMode: updated.recurrenceMode,
+            recurrenceEndDateISO: updated.recurrenceEndDateISO,
+            recurrenceCustomRule: updated.recurrenceCustomRule,
+            isArchived: updated.isArchived,
+            createdAtISO: updated.createdAt.toISOString(),
+            updatedAtISO: updated.updatedAt.toISOString()
+        };
+    }
+    async getResponsesTable(attendanceId, orgId) {
+        const attendance = await this.prisma.disposableAttendance.findUnique({
+            where: { id: attendanceId }
+        });
+        if (!attendance || attendance.organizationId !== orgId) {
+            throw new common_1.NotFoundException("Disposable attendance not found");
+        }
+        const fields = this.asFieldArray(attendance.fields);
+        const responses = await this.prisma.disposableAttendanceResponse.findMany({
+            where: { attendanceId },
+            orderBy: { createdAt: "desc" }
+        });
+        const columns = [
+            { key: "submittedAtISO", label: "Submitted" },
+            ...fields.map((field) => ({ key: field.id, label: field.label }))
+        ];
+        const rows = responses.map((response) => {
+            const saved = (response.values ?? {});
+            const alignedValues = Object.fromEntries(fields.map((field) => [field.id, saved[field.id] ?? ""]));
+            return {
+                id: response.id,
+                submittedAtISO: response.createdAt.toISOString(),
+                source: response.source,
+                values: alignedValues
+            };
+        });
+        return {
+            attendanceId: attendance.id,
+            attendanceTitle: attendance.title,
+            columns,
+            rows
+        };
+    }
     async submitAdminResponse(attendanceId, orgId, values, adminUserId) {
         const attendance = await this.prisma.disposableAttendance.findUnique({
             where: { id: attendanceId }

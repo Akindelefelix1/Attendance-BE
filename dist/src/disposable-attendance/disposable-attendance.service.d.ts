@@ -7,6 +7,16 @@ type DisposableField = {
     type: DisposableFieldType;
     required: boolean;
 };
+type ResponsesTableColumn = {
+    key: string;
+    label: string;
+};
+type ResponsesTableRow = {
+    id: string;
+    submittedAtISO: string;
+    source: string;
+    values: Record<string, string>;
+};
 type CreateDisposablePayload = {
     orgId: string;
     title: string;
@@ -93,6 +103,29 @@ export declare class DisposableAttendanceService {
         submittedAtISO: string;
         values: Record<string, string>;
     }[]>;
+    updateCollectedFields(attendanceId: string, orgId: string, fields: DisposableField[]): Promise<{
+        id: string;
+        publicId: string;
+        orgId: string;
+        title: string;
+        description: string;
+        location: string;
+        eventDateISO: string;
+        fields: DisposableField[];
+        isRecurring: boolean;
+        recurrenceMode: import("@prisma/client").$Enums.DisposableRecurrenceMode;
+        recurrenceEndDateISO: string | null;
+        recurrenceCustomRule: string;
+        isArchived: boolean;
+        createdAtISO: string;
+        updatedAtISO: string;
+    }>;
+    getResponsesTable(attendanceId: string, orgId: string): Promise<{
+        attendanceId: string;
+        attendanceTitle: string;
+        columns: ResponsesTableColumn[];
+        rows: ResponsesTableRow[];
+    }>;
     submitAdminResponse(attendanceId: string, orgId: string, values: Record<string, string>, adminUserId: string): Promise<{
         id: string;
         attendanceId: string;
