@@ -119,6 +119,8 @@ __decorate([
             }
         }
     }),
+    (0, swagger_1.ApiOkResponse)({ description: "Disposable attendance created" }),
+    (0, swagger_1.ApiForbiddenResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_attendance"),
     __param(0, (0, common_1.Body)()),
@@ -132,6 +134,8 @@ __decorate([
     (0, swagger_1.ApiCookieAuth)("cookieAuth"),
     (0, swagger_1.ApiOperation)({ summary: "Update disposable attendance" }),
     (0, swagger_1.ApiParam)({ name: "id", type: String }),
+    (0, swagger_1.ApiOkResponse)({ description: "Disposable attendance updated" }),
+    (0, swagger_1.ApiForbiddenResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_attendance"),
     __param(0, (0, common_1.Param)("id")),
@@ -147,6 +151,8 @@ __decorate([
     (0, swagger_1.ApiOperation)({ summary: "Delete disposable attendance" }),
     (0, swagger_1.ApiParam)({ name: "id", type: String }),
     (0, swagger_1.ApiQuery)({ name: "orgId", type: String, required: true }),
+    (0, swagger_1.ApiOkResponse)({ description: "Disposable attendance deleted" }),
+    (0, swagger_1.ApiForbiddenResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_attendance"),
     __param(0, (0, common_1.Param)("id")),
@@ -162,6 +168,8 @@ __decorate([
     (0, swagger_1.ApiOperation)({ summary: "List disposable attendance responses" }),
     (0, swagger_1.ApiParam)({ name: "id", type: String }),
     (0, swagger_1.ApiQuery)({ name: "orgId", type: String, required: true }),
+    (0, swagger_1.ApiOkResponse)({ description: "Disposable attendance responses returned" }),
+    (0, swagger_1.ApiForbiddenResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_attendance"),
     __param(0, (0, common_1.Param)("id")),
@@ -177,6 +185,8 @@ __decorate([
     (0, swagger_1.ApiOperation)({ summary: "Get disposable attendance responses formatted for table rendering" }),
     (0, swagger_1.ApiParam)({ name: "id", type: String }),
     (0, swagger_1.ApiQuery)({ name: "orgId", type: String, required: true }),
+    (0, swagger_1.ApiOkResponse)({ description: "Formatted disposable attendance response table returned" }),
+    (0, swagger_1.ApiForbiddenResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_attendance"),
     __param(0, (0, common_1.Param)("id")),
@@ -216,6 +226,8 @@ __decorate([
             }
         }
     }),
+    (0, swagger_1.ApiOkResponse)({ description: "Collected details updated" }),
+    (0, swagger_1.ApiForbiddenResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_attendance"),
     __param(0, (0, common_1.Param)("id")),
@@ -230,6 +242,18 @@ __decorate([
     (0, swagger_1.ApiCookieAuth)("cookieAuth"),
     (0, swagger_1.ApiOperation)({ summary: "Submit admin/manual disposable attendance response" }),
     (0, swagger_1.ApiParam)({ name: "id", type: String }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: "object",
+            required: ["orgId", "values"],
+            properties: {
+                orgId: { type: "string" },
+                values: { type: "object", additionalProperties: { type: "string" } }
+            }
+        }
+    }),
+    (0, swagger_1.ApiOkResponse)({ description: "Admin response submitted" }),
+    (0, swagger_1.ApiForbiddenResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_attendance"),
     __param(0, (0, common_1.Param)("id")),
@@ -245,6 +269,8 @@ __decorate([
     (0, swagger_1.ApiOperation)({ summary: "Export disposable attendance responses as CSV" }),
     (0, swagger_1.ApiParam)({ name: "id", type: String }),
     (0, swagger_1.ApiQuery)({ name: "orgId", type: String, required: true }),
+    (0, swagger_1.ApiOkResponse)({ description: "CSV export returned" }),
+    (0, swagger_1.ApiForbiddenResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_attendance"),
     __param(0, (0, common_1.Param)("id")),
@@ -278,6 +304,7 @@ __decorate([
             }
         }
     }),
+    (0, swagger_1.ApiOkResponse)({ description: "Public check-in submitted" }),
     __param(0, (0, common_1.Param)("publicId")),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),

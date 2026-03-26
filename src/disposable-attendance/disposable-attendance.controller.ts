@@ -85,6 +85,8 @@ export class DisposableAttendanceController {
       }
     }
   })
+  @ApiOkResponse({ description: "Disposable attendance created" })
+  @ApiForbiddenResponse({ description: "Authentication/authorization failed" })
   @UseGuards(AuthGuard("jwt"), PermissionsGuard)
   @Permissions("manage_attendance")
   create(
@@ -116,6 +118,8 @@ export class DisposableAttendanceController {
   @ApiCookieAuth("cookieAuth")
   @ApiOperation({ summary: "Update disposable attendance" })
   @ApiParam({ name: "id", type: String })
+  @ApiOkResponse({ description: "Disposable attendance updated" })
+  @ApiForbiddenResponse({ description: "Authentication/authorization failed" })
   @UseGuards(AuthGuard("jwt"), PermissionsGuard)
   @Permissions("manage_attendance")
   update(
@@ -150,6 +154,8 @@ export class DisposableAttendanceController {
   @ApiOperation({ summary: "Delete disposable attendance" })
   @ApiParam({ name: "id", type: String })
   @ApiQuery({ name: "orgId", type: String, required: true })
+  @ApiOkResponse({ description: "Disposable attendance deleted" })
+  @ApiForbiddenResponse({ description: "Authentication/authorization failed" })
   @UseGuards(AuthGuard("jwt"), PermissionsGuard)
   @Permissions("manage_attendance")
   remove(
@@ -166,6 +172,8 @@ export class DisposableAttendanceController {
   @ApiOperation({ summary: "List disposable attendance responses" })
   @ApiParam({ name: "id", type: String })
   @ApiQuery({ name: "orgId", type: String, required: true })
+  @ApiOkResponse({ description: "Disposable attendance responses returned" })
+  @ApiForbiddenResponse({ description: "Authentication/authorization failed" })
   @UseGuards(AuthGuard("jwt"), PermissionsGuard)
   @Permissions("manage_attendance")
   listResponses(
@@ -182,6 +190,8 @@ export class DisposableAttendanceController {
   @ApiOperation({ summary: "Get disposable attendance responses formatted for table rendering" })
   @ApiParam({ name: "id", type: String })
   @ApiQuery({ name: "orgId", type: String, required: true })
+  @ApiOkResponse({ description: "Formatted disposable attendance response table returned" })
+  @ApiForbiddenResponse({ description: "Authentication/authorization failed" })
   @UseGuards(AuthGuard("jwt"), PermissionsGuard)
   @Permissions("manage_attendance")
   getResponsesTable(
@@ -222,6 +232,8 @@ export class DisposableAttendanceController {
       }
     }
   })
+  @ApiOkResponse({ description: "Collected details updated" })
+  @ApiForbiddenResponse({ description: "Authentication/authorization failed" })
   @UseGuards(AuthGuard("jwt"), PermissionsGuard)
   @Permissions("manage_attendance")
   updateFields(
@@ -246,6 +258,18 @@ export class DisposableAttendanceController {
   @ApiCookieAuth("cookieAuth")
   @ApiOperation({ summary: "Submit admin/manual disposable attendance response" })
   @ApiParam({ name: "id", type: String })
+  @ApiBody({
+    schema: {
+      type: "object",
+      required: ["orgId", "values"],
+      properties: {
+        orgId: { type: "string" },
+        values: { type: "object", additionalProperties: { type: "string" } }
+      }
+    }
+  })
+  @ApiOkResponse({ description: "Admin response submitted" })
+  @ApiForbiddenResponse({ description: "Authentication/authorization failed" })
   @UseGuards(AuthGuard("jwt"), PermissionsGuard)
   @Permissions("manage_attendance")
   submitAdminResponse(
@@ -267,6 +291,8 @@ export class DisposableAttendanceController {
   @ApiOperation({ summary: "Export disposable attendance responses as CSV" })
   @ApiParam({ name: "id", type: String })
   @ApiQuery({ name: "orgId", type: String, required: true })
+  @ApiOkResponse({ description: "CSV export returned" })
+  @ApiForbiddenResponse({ description: "Authentication/authorization failed" })
   @UseGuards(AuthGuard("jwt"), PermissionsGuard)
   @Permissions("manage_attendance")
   async exportCsv(
@@ -305,6 +331,7 @@ export class DisposableAttendanceController {
       }
     }
   })
+  @ApiOkResponse({ description: "Public check-in submitted" })
   submitPublicResponse(
     @Param("publicId") publicId: string,
     @Body() body: { values: Record<string, string> }
