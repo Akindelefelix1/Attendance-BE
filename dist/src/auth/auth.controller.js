@@ -17,6 +17,7 @@ const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
 const swagger_1 = require("@nestjs/swagger");
 const auth_service_1 = require("./auth.service");
+const auth_dto_1 = require("./dto/auth.dto");
 let AuthController = class AuthController {
     authService;
     constructor(authService) {
@@ -72,7 +73,7 @@ __decorate([
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [auth_dto_1.AdminLoginDto, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "login", null);
 __decorate([
@@ -93,7 +94,7 @@ __decorate([
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [auth_dto_1.StaffLoginDto, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "staffLogin", null);
 __decorate([
@@ -111,7 +112,7 @@ __decorate([
     (0, swagger_1.ApiOkResponse)({ description: "Verification request accepted" }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [auth_dto_1.RequestEmailDto]),
     __metadata("design:returntype", void 0)
 ], AuthController.prototype, "requestVerify", null);
 __decorate([
@@ -130,7 +131,7 @@ __decorate([
     (0, swagger_1.ApiUnauthorizedResponse)({ description: "Invalid token" }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [auth_dto_1.VerifyTokenDto]),
     __metadata("design:returntype", void 0)
 ], AuthController.prototype, "verify", null);
 __decorate([
@@ -148,7 +149,7 @@ __decorate([
     (0, swagger_1.ApiOkResponse)({ description: "Password reset request accepted" }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [auth_dto_1.RequestEmailDto]),
     __metadata("design:returntype", void 0)
 ], AuthController.prototype, "requestReset", null);
 __decorate([
@@ -168,7 +169,7 @@ __decorate([
     (0, swagger_1.ApiUnauthorizedResponse)({ description: "Invalid or expired token" }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [auth_dto_1.ResetPasswordDto]),
     __metadata("design:returntype", void 0)
 ], AuthController.prototype, "reset", null);
 __decorate([
@@ -190,7 +191,7 @@ __decorate([
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [auth_dto_1.RegisterAdminDto, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "register", null);
 __decorate([

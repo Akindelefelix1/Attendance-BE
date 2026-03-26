@@ -1,62 +1,44 @@
 import type { Request, Response } from "express";
 import { AuthService } from "./auth.service";
+import { AdminLoginDto, RegisterAdminDto, RequestEmailDto, ResetPasswordDto, StaffLoginDto, VerifyTokenDto } from "./dto/auth.dto";
 export declare class AuthController {
     private readonly authService;
     constructor(authService: AuthService);
-    login(body: {
-        email: string;
-        password: string;
-    }, res: Response): Promise<{
+    login(body: AdminLoginDto, res: Response): Promise<{
         admin: {
             id: string;
             email: string;
             orgId: string;
         };
     }>;
-    staffLogin(body: {
-        email: string;
-        password: string;
-    }, res: Response): Promise<{
+    staffLogin(body: StaffLoginDto, res: Response): Promise<{
         staff: {
             id: string;
             email: string;
             orgId: string;
         };
     }>;
-    requestVerify(body: {
-        email: string;
-    }): Promise<{
+    requestVerify(body: RequestEmailDto): Promise<{
         ok: boolean;
         token?: undefined;
     } | {
         ok: boolean;
         token: `${string}-${string}-${string}-${string}-${string}`;
     }>;
-    verify(body: {
-        token: string;
-    }): Promise<{
+    verify(body: VerifyTokenDto): Promise<{
         ok: boolean;
     }>;
-    requestReset(body: {
-        email: string;
-    }): Promise<{
+    requestReset(body: RequestEmailDto): Promise<{
         ok: boolean;
         token?: undefined;
     } | {
         ok: boolean;
         token: `${string}-${string}-${string}-${string}-${string}`;
     }>;
-    reset(body: {
-        token: string;
-        password: string;
-    }): Promise<{
+    reset(body: ResetPasswordDto): Promise<{
         ok: boolean;
     }>;
-    register(body: {
-        orgId: string;
-        email: string;
-        password: string;
-    }, res: Response): Promise<{
+    register(body: RegisterAdminDto, res: Response): Promise<{
         admin: {
             id: string;
             email: string;

@@ -10,6 +10,14 @@ import {
 } from "@nestjs/swagger";
 import type { Request, Response } from "express";
 import { AuthService } from "./auth.service";
+import {
+  AdminLoginDto,
+  RegisterAdminDto,
+  RequestEmailDto,
+  ResetPasswordDto,
+  StaffLoginDto,
+  VerifyTokenDto
+} from "./dto/auth.dto";
 
 @ApiTags("Auth")
 @Controller("auth")
@@ -31,7 +39,7 @@ export class AuthController {
   @ApiOkResponse({ description: "Admin authenticated successfully" })
   @ApiUnauthorizedResponse({ description: "Invalid credentials" })
   async login(
-    @Body() body: { email: string; password: string },
+    @Body() body: AdminLoginDto,
     @Res({ passthrough: true }) res: Response
   ) {
     const result = await this.authService.login(body.email, body.password, res);
@@ -53,7 +61,7 @@ export class AuthController {
   @ApiOkResponse({ description: "Staff authenticated successfully" })
   @ApiUnauthorizedResponse({ description: "Invalid credentials" })
   async staffLogin(
-    @Body() body: { email: string; password: string },
+    @Body() body: StaffLoginDto,
     @Res({ passthrough: true }) res: Response
   ) {
     return this.authService.staffLogin(body.email, body.password, res);
@@ -71,7 +79,7 @@ export class AuthController {
     }
   })
   @ApiOkResponse({ description: "Verification request accepted" })
-  requestVerify(@Body() body: { email: string }) {
+  requestVerify(@Body() body: RequestEmailDto) {
     return this.authService.requestStaffVerify(body.email);
   }
 
@@ -88,7 +96,7 @@ export class AuthController {
   })
   @ApiOkResponse({ description: "Staff account verified" })
   @ApiUnauthorizedResponse({ description: "Invalid token" })
-  verify(@Body() body: { token: string }) {
+  verify(@Body() body: VerifyTokenDto) {
     return this.authService.verifyStaff(body.token);
   }
 
@@ -104,7 +112,7 @@ export class AuthController {
     }
   })
   @ApiOkResponse({ description: "Password reset request accepted" })
-  requestReset(@Body() body: { email: string }) {
+  requestReset(@Body() body: RequestEmailDto) {
     return this.authService.requestStaffReset(body.email);
   }
 
@@ -122,7 +130,7 @@ export class AuthController {
   })
   @ApiOkResponse({ description: "Password reset successful" })
   @ApiUnauthorizedResponse({ description: "Invalid or expired token" })
-  reset(@Body() body: { token: string; password: string }) {
+  reset(@Body() body: ResetPasswordDto) {
     return this.authService.resetStaffPassword(body.token, body.password);
   }
 
@@ -142,7 +150,7 @@ export class AuthController {
   @ApiOkResponse({ description: "Admin registered successfully" })
   @ApiUnauthorizedResponse({ description: "Organization not found or plan limit reached" })
   async register(
-    @Body() body: { orgId: string; email: string; password: string },
+    @Body() body: RegisterAdminDto,
     @Res({ passthrough: true }) res: Response
   ) {
     const result = await this.authService.registerAdmin(
