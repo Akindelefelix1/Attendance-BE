@@ -71,6 +71,17 @@ let AuthService = class AuthService {
             return 3;
         return 1;
     }
+    normalizeCredentials(email, password) {
+        const normalizedEmail = email?.trim().toLowerCase();
+        const normalizedPassword = password?.toString();
+        if (!normalizedEmail || !normalizedPassword) {
+            throw new common_1.UnauthorizedException("Invalid credentials");
+        }
+        return {
+            email: normalizedEmail,
+            password: normalizedPassword
+        };
+    }
     getCookieOptions() {
         const isProduction = process.env.NODE_ENV === "production";
         const configuredSameSite = process.env.COOKIE_SAME_SITE;
@@ -141,9 +152,9 @@ let AuthService = class AuthService {
         return { admin: { id: admin.id, email: admin.email, orgId } };
     }
     async login(email, password, res) {
-        const normalizedEmail = email.trim().toLowerCase();
+        const normalized = this.normalizeCredentials(email, password);
         const admins = await this.prisma.adminUser.findMany({
-            where: { email: normalizedEmail },
+            where: { email: normalized.email },
             orderBy: { createdAt: "desc" }
         });
         if (admins.length === 0) {
@@ -151,7 +162,13 @@ let AuthService = class AuthService {
         }
         let matchedAdmin = null;
         for (const admin of admins) {
-            const ok = await bcrypt.compare(password, admin.passwordHash);
+            let ok = false;
+            try {
+                ok = await bcrypt.compare(normalized.password, admin.passwordHash);
+            }
+            catch {
+                ok = false;
+            }
             if (ok) {
                 matchedAdmin = admin;
                 break;
@@ -165,7 +182,7 @@ let AuthService = class AuthService {
             orgId: matchedAdmin.organizationId,
             email: matchedAdmin.email,
             role: "admin",
-            permissions: matchedAdmin.permissions.length > 0
+            permissions: Array.isArray(matchedAdmin.permissions) && matchedAdmin.permissions.length > 0
                 ? matchedAdmin.permissions
                 : ADMIN_PERMISSIONS
         });
@@ -179,8 +196,9 @@ let AuthService = class AuthService {
         };
     }
     async staffLogin(email, password, res) {
+        const normalized = this.normalizeCredentials(email, password);
         const staffCandidates = await this.prisma.staffMember.findMany({
-            where: { email: email.trim().toLowerCase() },
+            where: { email: normalized.email },
             include: {
                 organization: {
                     select: {
@@ -200,7 +218,13 @@ let AuthService = class AuthService {
             if (!orgPasswordHash) {
                 continue;
             }
-            const ok = await bcrypt.compare(password, orgPasswordHash);
+            let ok = false;
+            try {
+                ok = await bcrypt.compare(normalized.password, orgPasswordHash);
+            }
+            catch {
+                ok = false;
+            }
             if (ok) {
                 matchedStaff = candidate;
                 break;
@@ -214,7 +238,7 @@ let AuthService = class AuthService {
             orgId: matchedStaff.organizationId,
             email: matchedStaff.email,
             role: "staff",
-            permissions: matchedStaff.permissions.length
+            permissions: Array.isArray(matchedStaff.permissions) && matchedStaff.permissions.length
                 ? matchedStaff.permissions
                 : STAFF_PERMISSIONS
         });
