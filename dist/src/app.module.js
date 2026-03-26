@@ -17,6 +17,7 @@ const attendance_module_1 = require("./attendance/attendance.module");
 const settings_module_1 = require("./settings/settings.module");
 const auth_module_1 = require("./auth/auth.module");
 const analytics_module_1 = require("./analytics/analytics.module");
+const disposable_attendance_module_1 = require("./disposable-attendance/disposable-attendance.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -29,7 +30,8 @@ exports.AppModule = AppModule = __decorate([
             staff_module_1.StaffModule,
             attendance_module_1.AttendanceModule,
             settings_module_1.SettingsModule,
-            analytics_module_1.AnalyticsModule
+            analytics_module_1.AnalyticsModule,
+            disposable_attendance_module_1.DisposableAttendanceModule
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService]

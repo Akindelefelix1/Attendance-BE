@@ -8,6 +8,7 @@ import { AttendanceModule } from "./attendance/attendance.module";
 import { SettingsModule } from "./settings/settings.module";
 import { AuthModule } from "./auth/auth.module";
 import { AnalyticsModule } from "./analytics/analytics.module";
+import { DisposableAttendanceModule } from "./disposable-attendance/disposable-attendance.module";
 
 @Module({
   imports: [
@@ -17,7 +18,8 @@ import { AnalyticsModule } from "./analytics/analytics.module";
     StaffModule,
     AttendanceModule,
     SettingsModule,
-    AnalyticsModule
+    AnalyticsModule,
+    DisposableAttendanceModule
   ],
   controllers: [AppController],
   providers: [AppService]

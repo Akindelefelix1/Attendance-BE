@@ -27,6 +27,14 @@ enum AppRole {
   staff
 }
 
+enum DisposableRecurrenceMode {
+  none
+  daily
+  weekly
+  monthly
+  custom
+}
+
 enum Permission {
   manage_organizations
   manage_staff
@@ -54,6 +62,7 @@ model Organization {
   planTier                   PlanTier              @default(free)
   staff                      StaffMember[]
   attendanceRecords          AttendanceRecord[]
+  disposableAttendances      DisposableAttendance[]
   admins                     AdminUser[]
   createdAt                  DateTime              @default(now())
   updatedAt                  DateTime              @updatedAt
@@ -109,4 +118,39 @@ model AdminUser {
   updatedAt      DateTime      @updatedAt
 
   @@unique([organizationId, email])
+}
+
+model DisposableAttendance {
+  id                    String                   @id @default(cuid())
+  publicId              String                   @unique
+  organization          Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId        String
+  title                 String
+  description           String                   @default("")
+  location              String                   @default("")
+  eventDateISO          String
+  fields                Json
+  isRecurring           Boolean                  @default(false)
+  recurrenceMode        DisposableRecurrenceMode @default(none)
+  recurrenceEndDateISO  String?
+  recurrenceCustomRule  String                   @default("")
+  isArchived            Boolean                  @default(false)
+  responses             DisposableAttendanceResponse[]
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+
+  @@index([organizationId])
+  @@index([organizationId, createdAt])
+}
+
+model DisposableAttendanceResponse {
+  id            String               @id @default(cuid())
+  attendance    DisposableAttendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  attendanceId  String
+  source        String               @default("public")
+  submittedById String?
+  values        Json
+  createdAt     DateTime             @default(now())
+
+  @@index([attendanceId, createdAt])
 }
