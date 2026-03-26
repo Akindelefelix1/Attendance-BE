@@ -62,8 +62,14 @@ $ npm run test:cov
 ### Render (Docker + Prisma)
 
 - The Docker container is configured to run Prisma migrations before app startup.
-- Startup command in `Dockerfile`: `npx prisma migrate deploy && npm run start:prod`.
+- Startup command in `Dockerfile`: `npx prisma migrate deploy && node dist/src/main`.
 - This ensures required tables (including auth/admin tables) are created before login requests are handled.
+- Health check endpoint: `GET /health` returns `{ ok: true, timestamp: ... }` after successful startup.
+
+Quick verification after deploy:
+
+- Open: `https://<your-render-service>.onrender.com/health`
+- Expected response: status `200` with JSON containing `ok: true`
 
 Required environment variables on Render:
 
