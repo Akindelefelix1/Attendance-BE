@@ -61,8 +61,10 @@ $ npm run test:cov
 
 ### Render (Docker + Prisma)
 
-- Free-tier recovery (no Shell): startup auto-runs `prisma migrate resolve --rolled-back` for `20260326100500_init` before `migrate deploy`.
-- Optional override: set `FAILED_MIGRATION_NAME` if you need to recover a different failed migration name.
+- The Docker container runs Prisma migrations before app startup.
+- Startup command in `Dockerfile`: `npx prisma migrate deploy && if [ "$RUN_SEED_ON_START" = "true" ]; then npm run db:seed; fi && node dist/src/main`.
+- Optional one-time seed: set `RUN_SEED_ON_START=true` for first deploy, then remove it (or set it to `false`).
+- Health check endpoint: `GET /health` returns `{ ok: true, timestamp: ... }`.
 
 Quick verification after deploy:
 
@@ -75,6 +77,7 @@ Required environment variables on Render:
 - `JWT_SECRET`
 - `PORT` (Render usually provides this automatically)
 - `FRONTEND_ORIGIN` (your deployed frontend URL, comma-separated if multiple)
+- `RUN_SEED_ON_START` (optional; set to `true` only when you need startup seeding)
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
 
