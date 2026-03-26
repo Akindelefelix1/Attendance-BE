@@ -10,4 +10,4 @@ RUN npx prisma generate
 RUN npm run build
 
 EXPOSE 3000
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/main"]
+CMD ["sh", "-c", "npx prisma migrate deploy && if [ \"$RUN_SEED_ON_START\" = \"true\" ]; then npm run db:seed; fi && node dist/src/main"]
