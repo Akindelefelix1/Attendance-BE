@@ -169,7 +169,11 @@ export class DisposableAttendanceController {
 
   @Get("disposable-attendance/:id/responses")
   @ApiCookieAuth("cookieAuth")
-  @ApiOperation({ summary: "List disposable attendance responses" })
+  @ApiOperation({
+    summary: "List disposable attendance responses (legacy)",
+    description: "Deprecated: use GET /disposable-attendance/:id/responses-table for UI table rendering.",
+    deprecated: true
+  })
   @ApiParam({ name: "id", type: String })
   @ApiQuery({ name: "orgId", type: String, required: true })
   @ApiOkResponse({ description: "Disposable attendance responses returned" })

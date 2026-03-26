@@ -165,7 +165,11 @@ __decorate([
 __decorate([
     (0, common_1.Get)("disposable-attendance/:id/responses"),
     (0, swagger_1.ApiCookieAuth)("cookieAuth"),
-    (0, swagger_1.ApiOperation)({ summary: "List disposable attendance responses" }),
+    (0, swagger_1.ApiOperation)({
+        summary: "List disposable attendance responses (legacy)",
+        description: "Deprecated: use GET /disposable-attendance/:id/responses-table for UI table rendering.",
+        deprecated: true
+    }),
     (0, swagger_1.ApiParam)({ name: "id", type: String }),
     (0, swagger_1.ApiQuery)({ name: "orgId", type: String, required: true }),
     (0, swagger_1.ApiOkResponse)({ description: "Disposable attendance responses returned" }),
