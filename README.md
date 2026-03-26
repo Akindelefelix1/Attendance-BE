@@ -61,10 +61,8 @@ $ npm run test:cov
 
 ### Render (Docker + Prisma)
 
-- The Docker container is configured to run Prisma migrations before app startup.
-- Startup command in `Dockerfile`: `npx prisma migrate deploy && node dist/src/main`.
-- This ensures required tables (including auth/admin tables) are created before login requests are handled.
-- Health check endpoint: `GET /health` returns `{ ok: true, timestamp: ... }` after successful startup.
+- Free-tier recovery (no Shell): startup auto-runs `prisma migrate resolve --rolled-back` for `20260326100500_init` before `migrate deploy`.
+- Optional override: set `FAILED_MIGRATION_NAME` if you need to recover a different failed migration name.
 
 Quick verification after deploy:
 
