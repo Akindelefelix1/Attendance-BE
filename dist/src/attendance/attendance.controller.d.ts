@@ -1,9 +1,10 @@
 import { AttendanceService } from "./attendance.service";
+import { AttendanceListQueryDto, AttendanceMarkDto } from "./dto/attendance.dto";
 export declare class AttendanceController {
     private readonly attendanceService;
     constructor(attendanceService: AttendanceService);
     private assertOrgScope;
-    list(orgId: string, dateISO: string, req: {
+    list(query: AttendanceListQueryDto, req: {
         user?: {
             orgId?: string;
             role?: string;
@@ -33,13 +34,7 @@ export declare class AttendanceController {
         signInAt: Date | null;
         signOutAt: Date | null;
     }[]>;
-    signIn(body: {
-        organizationId: string;
-        staffId: string;
-        dateISO: string;
-        latitude?: number;
-        longitude?: number;
-    }, req: {
+    signIn(body: AttendanceMarkDto, req: {
         user?: {
             role?: string;
             id?: string;
@@ -54,13 +49,7 @@ export declare class AttendanceController {
         signInAt: Date | null;
         signOutAt: Date | null;
     } | null> | null;
-    signOut(body: {
-        organizationId: string;
-        staffId: string;
-        dateISO: string;
-        latitude?: number;
-        longitude?: number;
-    }, req: {
+    signOut(body: AttendanceMarkDto, req: {
         user?: {
             role?: string;
             id?: string;

@@ -19,6 +19,7 @@ const swagger_1 = require("@nestjs/swagger");
 const attendance_service_1 = require("./attendance.service");
 const permissions_decorator_1 = require("../auth/permissions.decorator");
 const permissions_guard_1 = require("../auth/permissions.guard");
+const attendance_dto_1 = require("./dto/attendance.dto");
 let AttendanceController = class AttendanceController {
     attendanceService;
     constructor(attendanceService) {
@@ -35,7 +36,8 @@ let AttendanceController = class AttendanceController {
             throw new common_1.ForbiddenException("Access denied for this organization");
         }
     }
-    list(orgId, dateISO, req) {
+    list(query, req) {
+        const { orgId, dateISO } = query;
         this.assertOrgScope(orgId, req.user);
         return this.attendanceService.listByOrganizationAndDate(orgId, dateISO);
     }
@@ -68,11 +70,10 @@ __decorate([
     (0, swagger_1.ApiUnauthorizedResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_attendance"),
-    __param(0, (0, common_1.Query)("orgId")),
-    __param(1, (0, common_1.Query)("dateISO")),
-    __param(2, (0, common_1.Req)()),
+    __param(0, (0, common_1.Query)()),
+    __param(1, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:paramtypes", [attendance_dto_1.AttendanceListQueryDto, Object]),
     __metadata("design:returntype", void 0)
 ], AttendanceController.prototype, "list", null);
 __decorate([
@@ -92,19 +93,6 @@ __decorate([
 __decorate([
     (0, common_1.Post)("sign-in"),
     (0, swagger_1.ApiOperation)({ summary: "Sign in staff attendance" }),
-    (0, swagger_1.ApiBody)({
-        schema: {
-            type: "object",
-            required: ["organizationId", "staffId", "dateISO"],
-            properties: {
-                organizationId: { type: "string" },
-                staffId: { type: "string" },
-                dateISO: { type: "string", example: "2026-03-25" },
-                latitude: { type: "number" },
-                longitude: { type: "number" }
-            }
-        }
-    }),
     (0, swagger_1.ApiOkResponse)({ description: "Sign-in recorded" }),
     (0, swagger_1.ApiUnauthorizedResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
@@ -112,25 +100,12 @@ __decorate([
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [attendance_dto_1.AttendanceMarkDto, Object]),
     __metadata("design:returntype", void 0)
 ], AttendanceController.prototype, "signIn", null);
 __decorate([
     (0, common_1.Post)("sign-out"),
     (0, swagger_1.ApiOperation)({ summary: "Sign out staff attendance" }),
-    (0, swagger_1.ApiBody)({
-        schema: {
-            type: "object",
-            required: ["organizationId", "staffId", "dateISO"],
-            properties: {
-                organizationId: { type: "string" },
-                staffId: { type: "string" },
-                dateISO: { type: "string", example: "2026-03-25" },
-                latitude: { type: "number" },
-                longitude: { type: "number" }
-            }
-        }
-    }),
     (0, swagger_1.ApiOkResponse)({ description: "Sign-out recorded" }),
     (0, swagger_1.ApiUnauthorizedResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
@@ -138,7 +113,7 @@ __decorate([
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [attendance_dto_1.AttendanceMarkDto, Object]),
     __metadata("design:returntype", void 0)
 ], AttendanceController.prototype, "signOut", null);
 exports.AttendanceController = AttendanceController = __decorate([

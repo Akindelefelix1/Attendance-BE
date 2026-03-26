@@ -11,7 +11,6 @@ import {
 } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
 import {
-  ApiBody,
   ApiCookieAuth,
   ApiOkResponse,
   ApiOperation,
@@ -23,6 +22,7 @@ import {
 import { AttendanceService } from "./attendance.service";
 import { Permissions } from "../auth/permissions.decorator";
 import { PermissionsGuard } from "../auth/permissions.guard";
+import { AttendanceListQueryDto, AttendanceMarkDto } from "./dto/attendance.dto";
 
 @ApiTags("Attendance")
 @ApiCookieAuth("cookieAuth")
@@ -54,10 +54,10 @@ export class AttendanceController {
   @UseGuards(AuthGuard("jwt"), PermissionsGuard)
   @Permissions("manage_attendance")
   list(
-    @Query("orgId") orgId: string,
-    @Query("dateISO") dateISO: string,
+    @Query() query: AttendanceListQueryDto,
     @Req() req: { user?: { orgId?: string; role?: string } }
   ) {
+    const { orgId, dateISO } = query;
     this.assertOrgScope(orgId, req.user);
     return this.attendanceService.listByOrganizationAndDate(orgId, dateISO);
   }
@@ -79,32 +79,12 @@ export class AttendanceController {
 
   @Post("sign-in")
   @ApiOperation({ summary: "Sign in staff attendance" })
-  @ApiBody({
-    schema: {
-      type: "object",
-      required: ["organizationId", "staffId", "dateISO"],
-      properties: {
-        organizationId: { type: "string" },
-        staffId: { type: "string" },
-        dateISO: { type: "string", example: "2026-03-25" },
-        latitude: { type: "number" },
-        longitude: { type: "number" }
-      }
-    }
-  })
   @ApiOkResponse({ description: "Sign-in recorded" })
   @ApiUnauthorizedResponse({ description: "Authentication/authorization failed" })
   @UseGuards(AuthGuard("jwt"), PermissionsGuard)
   @Permissions("manage_attendance")
   signIn(
-    @Body()
-    body: {
-      organizationId: string;
-      staffId: string;
-      dateISO: string;
-      latitude?: number;
-      longitude?: number;
-    },
+    @Body() body: AttendanceMarkDto,
     @Req() req: { user?: { role?: string; id?: string } }
   ) {
     if (req.user?.role === "staff" && req.user.id !== body.staffId) {
@@ -123,32 +103,12 @@ export class AttendanceController {
 
   @Post("sign-out")
   @ApiOperation({ summary: "Sign out staff attendance" })
-  @ApiBody({
-    schema: {
-      type: "object",
-      required: ["organizationId", "staffId", "dateISO"],
-      properties: {
-        organizationId: { type: "string" },
-        staffId: { type: "string" },
-        dateISO: { type: "string", example: "2026-03-25" },
-        latitude: { type: "number" },
-        longitude: { type: "number" }
-      }
-    }
-  })
   @ApiOkResponse({ description: "Sign-out recorded" })
   @ApiUnauthorizedResponse({ description: "Authentication/authorization failed" })
   @UseGuards(AuthGuard("jwt"), PermissionsGuard)
   @Permissions("manage_attendance")
   signOut(
-    @Body()
-    body: {
-      organizationId: string;
-      staffId: string;
-      dateISO: string;
-      latitude?: number;
-      longitude?: number;
-    },
+    @Body() body: AttendanceMarkDto,
     @Req() req: { user?: { role?: string; id?: string } }
   ) {
     if (req.user?.role === "staff" && req.user.id !== body.staffId) {
