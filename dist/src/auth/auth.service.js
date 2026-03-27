@@ -41,6 +41,7 @@ var __importStar = (this && this.__importStar) || (function () {
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var AuthService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthService = void 0;
 const common_1 = require("@nestjs/common");
@@ -59,10 +60,11 @@ const ADMIN_PERMISSIONS = [
 ];
 const STAFF_PERMISSIONS = ["manage_attendance"];
 const ADMIN_VERIFY_TOKEN_EXPIRY_MS = 1000 * 60 * 60 * 24;
-let AuthService = class AuthService {
+let AuthService = AuthService_1 = class AuthService {
     prisma;
     jwtService;
     emailService;
+    logger = new common_1.Logger(AuthService_1.name);
     constructor(prisma, jwtService, emailService) {
         this.prisma = prisma;
         this.jwtService = jwtService;
@@ -171,36 +173,12 @@ let AuthService = class AuthService {
         });
         if (emailVerificationEnabled) {
             const { token } = await this.issueAdminVerifyToken(admin.id);
-            const delivery = await this.emailService.sendAdminVerificationEmail({
+            this.emailService.sendAdminVerificationEmail({
                 email: admin.email,
                 token
+            }).catch((error) => {
+                this.logger.error(`[Background] Failed to send verification email to ${admin.email}.`, error instanceof Error ? error.stack : String(error));
             });
-            if (!delivery.delivered) {
-                const verifiedAdmin = await this.prisma.adminUser.update({
-                    where: { id: admin.id },
-                    data: {
-                        isVerified: true,
-                        verifyToken: null,
-                        verifyTokenExp: null
-                    }
-                });
-                const jwtToken = this.jwtService.sign({
-                    sub: verifiedAdmin.id,
-                    orgId: verifiedAdmin.organizationId,
-                    email: verifiedAdmin.email,
-                    role: "admin",
-                    permissions: Array.isArray(verifiedAdmin.permissions) &&
-                        verifiedAdmin.permissions.length > 0
-                        ? verifiedAdmin.permissions
-                        : ADMIN_PERMISSIONS
-                });
-                this.setCookie(res, jwtToken);
-                return {
-                    admin: { id: verifiedAdmin.id, email: verifiedAdmin.email, orgId },
-                    verificationRequired: false,
-                    message: "Account created successfully. Email delivery is temporarily unavailable."
-                };
-            }
             return {
                 admin: { id: admin.id, email: admin.email, orgId },
                 verificationRequired: true,
@@ -261,23 +239,14 @@ let AuthService = class AuthService {
             }
             else {
                 const issued = await this.issueAdminVerifyToken(matchedAdmin.id);
-                const delivery = await this.emailService.sendAdminVerificationEmail({
-                    email: matchedAdmin.email,
+                const adminEmail = matchedAdmin.email;
+                this.emailService.sendAdminVerificationEmail({
+                    email: adminEmail,
                     token: issued.token
+                }).catch((error) => {
+                    this.logger.error(`[Background] Failed to send verification email to ${adminEmail}.`, error instanceof Error ? error.stack : String(error));
                 });
-                if (!delivery.delivered) {
-                    matchedAdmin = await this.prisma.adminUser.update({
-                        where: { id: matchedAdmin.id },
-                        data: {
-                            isVerified: true,
-                            verifyToken: null,
-                            verifyTokenExp: null
-                        }
-                    });
-                }
-                else {
-                    throw new common_1.UnauthorizedException("Email not verified. We sent a new verification email.");
-                }
+                throw new common_1.UnauthorizedException("Email not verified. We sent a new verification email.");
             }
         }
         const token = this.jwtService.sign({
@@ -390,24 +359,15 @@ let AuthService = class AuthService {
             return { ok: true };
         }
         const issued = await this.issueAdminVerifyToken(admin.id);
-        const delivery = await this.emailService.sendAdminVerificationEmail({
+        this.emailService.sendAdminVerificationEmail({
             email: admin.email,
             token: issued.token
+        }).catch((error) => {
+            this.logger.error(`[Background] Failed to send verification email to ${admin.email}.`, error instanceof Error ? error.stack : String(error));
         });
-        if (!delivery.delivered) {
-            await this.prisma.adminUser.update({
-                where: { id: admin.id },
-                data: {
-                    isVerified: true,
-                    verifyToken: null,
-                    verifyTokenExp: null
-                }
-            });
-        }
         return {
             ok: true,
-            ...(this.isDevMode() ? { verificationToken: issued.token } : {}),
-            emailDeliveryAvailable: delivery.delivered
+            ...(this.isDevMode() ? { verificationToken: issued.token } : {})
         };
     }
     async verifyAdmin(token, res) {
@@ -493,7 +453,7 @@ let AuthService = class AuthService {
     }
 };
 exports.AuthService = AuthService;
-exports.AuthService = AuthService = __decorate([
+exports.AuthService = AuthService = AuthService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         jwt_1.JwtService,

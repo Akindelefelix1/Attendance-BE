@@ -49,9 +49,6 @@ export declare class AuthController {
         message: string;
     }>;
     requestAdminVerify(body: RequestAdminVerifyDto): Promise<{
-        ok: boolean;
-    } | {
-        emailDeliveryAvailable: boolean;
         verificationToken?: `${string}-${string}-${string}-${string}-${string}` | undefined;
         ok: boolean;
     }>;

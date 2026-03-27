@@ -6,6 +6,7 @@ export declare class AuthService {
     private readonly prisma;
     private readonly jwtService;
     private readonly emailService;
+    private readonly logger;
     constructor(prisma: PrismaService, jwtService: JwtService, emailService: EmailService);
     private isDevMode;
     private createAdminVerifyToken;
@@ -51,9 +52,6 @@ export declare class AuthService {
         ok: boolean;
     }>;
     requestAdminVerify(email: string): Promise<{
-        ok: boolean;
-    } | {
-        emailDeliveryAvailable: boolean;
         verificationToken?: `${string}-${string}-${string}-${string}-${string}` | undefined;
         ok: boolean;
     }>;

@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { Injectable, Logger, UnauthorizedException } from "@nestjs/common";
 import type { Request, Response } from "express";
 import { JwtService } from "@nestjs/jwt";
 import type { Permission } from "@prisma/client";
@@ -21,6 +21,8 @@ const ADMIN_VERIFY_TOKEN_EXPIRY_MS = 1000 * 60 * 60 * 24;
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
@@ -149,40 +151,16 @@ export class AuthService {
 
     if (emailVerificationEnabled) {
       const { token } = await this.issueAdminVerifyToken(admin.id);
-      const delivery = await this.emailService.sendAdminVerificationEmail({
+      
+      this.emailService.sendAdminVerificationEmail({
         email: admin.email,
         token
+      }).catch((error) => {
+        this.logger.error(
+          `[Background] Failed to send verification email to ${admin.email}.`,
+          error instanceof Error ? error.stack : String(error)
+        );
       });
-
-      if (!delivery.delivered) {
-        const verifiedAdmin = await this.prisma.adminUser.update({
-          where: { id: admin.id },
-          data: {
-            isVerified: true,
-            verifyToken: null,
-            verifyTokenExp: null
-          }
-        });
-
-        const jwtToken = this.jwtService.sign({
-          sub: verifiedAdmin.id,
-          orgId: verifiedAdmin.organizationId,
-          email: verifiedAdmin.email,
-          role: "admin",
-          permissions:
-            Array.isArray(verifiedAdmin.permissions) &&
-            verifiedAdmin.permissions.length > 0
-              ? verifiedAdmin.permissions
-              : ADMIN_PERMISSIONS
-        });
-        this.setCookie(res, jwtToken);
-
-        return {
-          admin: { id: verifiedAdmin.id, email: verifiedAdmin.email, orgId },
-          verificationRequired: false,
-          message: "Account created successfully. Email delivery is temporarily unavailable."
-        };
-      }
 
       return {
         admin: { id: admin.id, email: admin.email, orgId },
@@ -248,24 +226,19 @@ export class AuthService {
         });
       } else {
         const issued = await this.issueAdminVerifyToken(matchedAdmin.id);
-        const delivery = await this.emailService.sendAdminVerificationEmail({
-          email: matchedAdmin.email,
+        const adminEmail = matchedAdmin.email;
+        this.emailService.sendAdminVerificationEmail({
+          email: adminEmail,
           token: issued.token
-        });
-        if (!delivery.delivered) {
-          matchedAdmin = await this.prisma.adminUser.update({
-            where: { id: matchedAdmin.id },
-            data: {
-              isVerified: true,
-              verifyToken: null,
-              verifyTokenExp: null
-            }
-          });
-        } else {
-          throw new UnauthorizedException(
-            "Email not verified. We sent a new verification email."
+        }).catch((error) => {
+          this.logger.error(
+            `[Background] Failed to send verification email to ${adminEmail}.`,
+            error instanceof Error ? error.stack : String(error)
           );
-        }
+        });
+        throw new UnauthorizedException(
+          "Email not verified. We sent a new verification email."
+        );
       }
     }
 
@@ -388,26 +361,19 @@ export class AuthService {
     }
 
     const issued = await this.issueAdminVerifyToken(admin.id);
-    const delivery = await this.emailService.sendAdminVerificationEmail({
+    this.emailService.sendAdminVerificationEmail({
       email: admin.email,
       token: issued.token
+    }).catch((error) => {
+      this.logger.error(
+        `[Background] Failed to send verification email to ${admin.email}.`,
+        error instanceof Error ? error.stack : String(error)
+      );
     });
-
-    if (!delivery.delivered) {
-      await this.prisma.adminUser.update({
-        where: { id: admin.id },
-        data: {
-          isVerified: true,
-          verifyToken: null,
-          verifyTokenExp: null
-        }
-      });
-    }
 
     return {
       ok: true,
-      ...(this.isDevMode() ? { verificationToken: issued.token } : {}),
-      emailDeliveryAvailable: delivery.delivered
+      ...(this.isDevMode() ? { verificationToken: issued.token } : {})
     };
   }
 
