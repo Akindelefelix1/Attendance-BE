@@ -5,6 +5,7 @@ type AdminVerificationPayload = {
 export declare class EmailService {
     private readonly logger;
     private transporter;
+    isDeliveryConfigured(): boolean;
     private getFrontendBaseUrl;
     private getAdminVerifyUrl;
     private getTransporter;

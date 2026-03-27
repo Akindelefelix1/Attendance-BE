@@ -12,6 +12,20 @@ export class EmailService {
   private readonly logger = new Logger(EmailService.name);
   private transporter: Transporter | null = null;
 
+  isDeliveryConfigured() {
+    const host = process.env.SMTP_HOST?.trim();
+    const portRaw = process.env.SMTP_PORT?.trim();
+    const user = process.env.SMTP_USER?.trim();
+    const pass = process.env.SMTP_PASS;
+
+    if (!host || !portRaw || !user || !pass) {
+      return false;
+    }
+
+    const port = Number(portRaw);
+    return Number.isFinite(port);
+  }
+
   private getFrontendBaseUrl() {
     const configuredOrigin = (process.env.FRONTEND_ORIGIN ?? "")
       .split(",")
@@ -30,19 +44,14 @@ export class EmailService {
       return this.transporter;
     }
 
-    const host = process.env.SMTP_HOST?.trim();
-    const portRaw = process.env.SMTP_PORT?.trim();
-    const user = process.env.SMTP_USER?.trim();
-    const pass = process.env.SMTP_PASS;
-
-    if (!host || !portRaw || !user || !pass) {
+    if (!this.isDeliveryConfigured()) {
       return null;
     }
 
-    const port = Number(portRaw);
-    if (!Number.isFinite(port)) {
-      return null;
-    }
+    const host = process.env.SMTP_HOST!.trim();
+    const port = Number(process.env.SMTP_PORT!.trim());
+    const user = process.env.SMTP_USER!.trim();
+    const pass = process.env.SMTP_PASS!;
 
     this.transporter = nodemailer.createTransport({
       host,

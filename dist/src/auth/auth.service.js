@@ -143,6 +143,7 @@ let AuthService = class AuthService {
     }
     async registerAdmin(orgId, email, password, res) {
         this.clearCookie(res);
+        const emailVerificationEnabled = this.emailService.isDeliveryConfigured();
         const organization = await this.prisma.organization.findUnique({
             where: { id: orgId }
         });
@@ -162,20 +163,37 @@ let AuthService = class AuthService {
                 organization: { connect: { id: orgId } },
                 email: email.trim().toLowerCase(),
                 passwordHash,
-                isVerified: false,
+                isVerified: !emailVerificationEnabled,
+                verifyToken: null,
+                verifyTokenExp: null,
                 permissions: [...ADMIN_PERMISSIONS]
             }
         });
-        const { token } = await this.issueAdminVerifyToken(admin.id);
-        await this.emailService.sendAdminVerificationEmail({
+        if (emailVerificationEnabled) {
+            const { token } = await this.issueAdminVerifyToken(admin.id);
+            await this.emailService.sendAdminVerificationEmail({
+                email: admin.email,
+                token
+            });
+            return {
+                admin: { id: admin.id, email: admin.email, orgId },
+                verificationRequired: true,
+                message: "Verification email sent. Please verify your email before login.",
+                ...(this.isDevMode() ? { verificationToken: token } : {})
+            };
+        }
+        const jwtToken = this.jwtService.sign({
+            sub: admin.id,
+            orgId: admin.organizationId,
             email: admin.email,
-            token
+            role: "admin",
+            permissions: [...ADMIN_PERMISSIONS]
         });
+        this.setCookie(res, jwtToken);
         return {
             admin: { id: admin.id, email: admin.email, orgId },
-            verificationRequired: true,
-            message: "Verification email sent. Please verify your email before login.",
-            ...(this.isDevMode() ? { verificationToken: token } : {})
+            verificationRequired: false,
+            message: "Account created successfully."
         };
     }
     async login(email, password, res) {
@@ -205,12 +223,24 @@ let AuthService = class AuthService {
             throw new common_1.UnauthorizedException("Invalid credentials");
         }
         if (!matchedAdmin.isVerified) {
-            const issued = await this.issueAdminVerifyToken(matchedAdmin.id);
-            await this.emailService.sendAdminVerificationEmail({
-                email: matchedAdmin.email,
-                token: issued.token
-            });
-            throw new common_1.UnauthorizedException("Email not verified. We sent a new verification email.");
+            if (!this.emailService.isDeliveryConfigured()) {
+                matchedAdmin = await this.prisma.adminUser.update({
+                    where: { id: matchedAdmin.id },
+                    data: {
+                        isVerified: true,
+                        verifyToken: null,
+                        verifyTokenExp: null
+                    }
+                });
+            }
+            else {
+                const issued = await this.issueAdminVerifyToken(matchedAdmin.id);
+                await this.emailService.sendAdminVerificationEmail({
+                    email: matchedAdmin.email,
+                    token: issued.token
+                });
+                throw new common_1.UnauthorizedException("Email not verified. We sent a new verification email.");
+            }
         }
         const token = this.jwtService.sign({
             sub: matchedAdmin.id,

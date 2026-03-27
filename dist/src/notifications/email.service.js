@@ -16,6 +16,17 @@ const nodemailer_1 = __importDefault(require("nodemailer"));
 let EmailService = EmailService_1 = class EmailService {
     logger = new common_1.Logger(EmailService_1.name);
     transporter = null;
+    isDeliveryConfigured() {
+        const host = process.env.SMTP_HOST?.trim();
+        const portRaw = process.env.SMTP_PORT?.trim();
+        const user = process.env.SMTP_USER?.trim();
+        const pass = process.env.SMTP_PASS;
+        if (!host || !portRaw || !user || !pass) {
+            return false;
+        }
+        const port = Number(portRaw);
+        return Number.isFinite(port);
+    }
     getFrontendBaseUrl() {
         const configuredOrigin = (process.env.FRONTEND_ORIGIN ?? "")
             .split(",")
@@ -30,17 +41,13 @@ let EmailService = EmailService_1 = class EmailService {
         if (this.transporter) {
             return this.transporter;
         }
-        const host = process.env.SMTP_HOST?.trim();
-        const portRaw = process.env.SMTP_PORT?.trim();
-        const user = process.env.SMTP_USER?.trim();
+        if (!this.isDeliveryConfigured()) {
+            return null;
+        }
+        const host = process.env.SMTP_HOST.trim();
+        const port = Number(process.env.SMTP_PORT.trim());
+        const user = process.env.SMTP_USER.trim();
         const pass = process.env.SMTP_PASS;
-        if (!host || !portRaw || !user || !pass) {
-            return null;
-        }
-        const port = Number(portRaw);
-        if (!Number.isFinite(port)) {
-            return null;
-        }
         this.transporter = nodemailer_1.default.createTransport({
             host,
             port,
