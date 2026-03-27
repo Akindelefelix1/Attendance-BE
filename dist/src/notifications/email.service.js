@@ -48,10 +48,15 @@ let EmailService = EmailService_1 = class EmailService {
         const port = Number(process.env.SMTP_PORT.trim());
         const user = process.env.SMTP_USER.trim();
         const pass = process.env.SMTP_PASS;
+        const configuredSecure = process.env.SMTP_SECURE?.trim().toLowerCase();
+        const secure = configuredSecure !== undefined ? configuredSecure === "true" : port === 465;
+        const configuredFamily = Number(process.env.SMTP_FAMILY?.trim() ?? "4");
+        const family = configuredFamily === 4 || configuredFamily === 6 ? configuredFamily : 4;
         this.transporter = nodemailer_1.default.createTransport({
             host,
             port,
-            secure: port === 465,
+            secure,
+            family,
             auth: {
                 user,
                 pass
