@@ -28,7 +28,7 @@ let StaffController = class StaffController {
         if (!user) {
             throw new common_1.ForbiddenException("Authentication required");
         }
-        if (user.role === "super_admin") {
+        if (user.role === "super_admin" || user.role === "admin") {
             return;
         }
         if (!user.orgId || user.orgId !== requestOrgId) {
@@ -48,13 +48,13 @@ let StaffController = class StaffController {
         });
     }
     update(id, req, body) {
-        if (req.user?.role !== "super_admin") {
+        if (req.user?.role !== "super_admin" && req.user?.role !== "admin") {
             return this.staffService.updateInOrg(id, req.user?.orgId ?? "", body);
         }
         return this.staffService.update(id, body);
     }
     remove(id, req) {
-        if (req.user?.role !== "super_admin") {
+        if (req.user?.role !== "super_admin" && req.user?.role !== "admin") {
             return this.staffService.removeInOrg(id, req.user?.orgId ?? "");
         }
         return this.staffService.remove(id);

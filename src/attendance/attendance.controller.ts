@@ -37,7 +37,7 @@ export class AttendanceController {
     if (!user) {
       throw new ForbiddenException("Authentication required");
     }
-    if (user.role === "super_admin") {
+    if (user.role === "super_admin" || user.role === "admin") {
       return;
     }
     if (!user.orgId || user.orgId !== requestOrgId) {

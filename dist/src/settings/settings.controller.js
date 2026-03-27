@@ -28,7 +28,7 @@ let SettingsController = class SettingsController {
         if (!user) {
             throw new common_1.ForbiddenException("Authentication required");
         }
-        if (user.role === "super_admin") {
+        if (user.role === "super_admin" || user.role === "admin") {
             return;
         }
         if (!user.orgId || user.orgId !== requestOrgId) {

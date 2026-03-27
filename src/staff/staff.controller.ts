@@ -37,7 +37,7 @@ export class StaffController {
     if (!user) {
       throw new ForbiddenException("Authentication required");
     }
-    if (user.role === "super_admin") {
+    if (user.role === "super_admin" || user.role === "admin") {
       return;
     }
     if (!user.orgId || user.orgId !== requestOrgId) {
@@ -113,7 +113,7 @@ export class StaffController {
     @Req() req: { user?: { orgId?: string; role?: string } },
     @Body() body: { fullName?: string; role?: string; email?: string }
   ) {
-    if (req.user?.role !== "super_admin") {
+    if (req.user?.role !== "super_admin" && req.user?.role !== "admin") {
       return this.staffService.updateInOrg(id, req.user?.orgId ?? "", body);
     }
     return this.staffService.update(id, body);
@@ -130,7 +130,7 @@ export class StaffController {
     @Param("id") id: string,
     @Req() req: { user?: { orgId?: string; role?: string } }
   ) {
-    if (req.user?.role !== "super_admin") {
+    if (req.user?.role !== "super_admin" && req.user?.role !== "admin") {
       return this.staffService.removeInOrg(id, req.user?.orgId ?? "");
     }
     return this.staffService.remove(id);

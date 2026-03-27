@@ -28,7 +28,7 @@ let OrganizationsController = class OrganizationsController {
         if (!user) {
             throw new common_1.ForbiddenException("Authentication required");
         }
-        if (user.role === "super_admin") {
+        if (user.role === "super_admin" || user.role === "admin") {
             return;
         }
         if (!user.orgId || user.orgId !== requestOrgId) {
@@ -36,7 +36,7 @@ let OrganizationsController = class OrganizationsController {
         }
     }
     findAll(req) {
-        if (req.user?.role === "super_admin") {
+        if (req.user?.role === "super_admin" || req.user?.role === "admin") {
             return this.organizationsService.findAll();
         }
         if (!req.user?.orgId) {

@@ -37,7 +37,7 @@ export class OrganizationsController {
     if (!user) {
       throw new ForbiddenException("Authentication required");
     }
-    if (user.role === "super_admin") {
+    if (user.role === "super_admin" || user.role === "admin") {
       return;
     }
     if (!user.orgId || user.orgId !== requestOrgId) {
@@ -52,7 +52,7 @@ export class OrganizationsController {
   @ApiForbiddenResponse({ description: "Authentication/authorization failed" })
   @UseGuards(AuthGuard("jwt"))
   findAll(@Req() req: { user?: { orgId?: string; role?: string } }) {
-    if (req.user?.role === "super_admin") {
+    if (req.user?.role === "super_admin" || req.user?.role === "admin") {
       return this.organizationsService.findAll();
     }
     if (!req.user?.orgId) {
