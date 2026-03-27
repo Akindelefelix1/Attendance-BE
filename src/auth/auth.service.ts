@@ -6,6 +6,7 @@ import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../prisma/prisma.service";
 import * as crypto from "crypto";
 import type { CookieOptions } from "express";
+import { EmailService } from "../notifications/email.service";
 
 const COOKIE_NAME = "attendance_token";
 const ADMIN_PERMISSIONS = [
@@ -16,13 +17,46 @@ const ADMIN_PERMISSIONS = [
   "manage_settings"
 ] as const satisfies readonly Permission[];
 const STAFF_PERMISSIONS = ["manage_attendance"] as const satisfies readonly Permission[];
+const ADMIN_VERIFY_TOKEN_EXPIRY_MS = 1000 * 60 * 60 * 24;
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly jwtService: JwtService
+    private readonly jwtService: JwtService,
+    private readonly emailService: EmailService
   ) {}
+
+  private isDevMode() {
+    return (process.env.NODE_ENV ?? "development") !== "production";
+  }
+
+  private createAdminVerifyToken() {
+    return crypto.randomUUID();
+  }
+
+  private getVerifyExpiryDate() {
+    return new Date(Date.now() + ADMIN_VERIFY_TOKEN_EXPIRY_MS);
+  }
+
+  private async issueAdminVerifyToken(adminId: string) {
+    const token = this.createAdminVerifyToken();
+    const verifyTokenExp = this.getVerifyExpiryDate();
+
+    const admin = await this.prisma.adminUser.update({
+      where: { id: adminId },
+      data: {
+        verifyToken: token,
+        verifyTokenExp
+      }
+    });
+
+    return {
+      admin,
+      token,
+      verifyTokenExp
+    };
+  }
 
   private getAdminLimit(planTier: "free" | "plus" | "pro") {
     if (planTier === "pro") return 10;
@@ -85,6 +119,7 @@ export class AuthService {
   }
 
   async registerAdmin(orgId: string, email: string, password: string, res: Response) {
+    this.clearCookie(res);
     const organization = await this.prisma.organization.findUnique({
       where: { id: orgId }
     });
@@ -104,26 +139,23 @@ export class AuthService {
         organization: { connect: { id: orgId } },
         email: email.trim().toLowerCase(),
         passwordHash,
+        isVerified: false,
         permissions: [...ADMIN_PERMISSIONS]
       }
     });
-    await this.prisma.organization.update({
-      where: { id: orgId },
-      data: {
-        adminEmails: Array.from(
-          new Set([...organization.adminEmails, admin.email])
-        )
-      }
-    });
-    const token = this.jwtService.sign({
-      sub: admin.id,
-      orgId,
+
+    const { token } = await this.issueAdminVerifyToken(admin.id);
+    await this.emailService.sendAdminVerificationEmail({
       email: admin.email,
-      role: "admin",
-      permissions: admin.permissions.length ? admin.permissions : ADMIN_PERMISSIONS
+      token
     });
-    this.setCookie(res, token);
-    return { admin: { id: admin.id, email: admin.email, orgId } };
+
+    return {
+      admin: { id: admin.id, email: admin.email, orgId },
+      verificationRequired: true,
+      message: "Verification email sent. Please verify your email before login.",
+      ...(this.isDevMode() ? { verificationToken: token } : {})
+    };
   }
 
   async login(email: string, password: string, res: Response) {
@@ -152,6 +184,17 @@ export class AuthService {
 
     if (!matchedAdmin) {
       throw new UnauthorizedException("Invalid credentials");
+    }
+
+    if (!matchedAdmin.isVerified) {
+      const issued = await this.issueAdminVerifyToken(matchedAdmin.id);
+      await this.emailService.sendAdminVerificationEmail({
+        email: matchedAdmin.email,
+        token: issued.token
+      });
+      throw new UnauthorizedException(
+        "Email not verified. We sent a new verification email."
+      );
     }
 
     const token = this.jwtService.sign({
@@ -260,6 +303,83 @@ export class AuthService {
       data: { isVerified: true, verifyToken: null }
     });
     return { ok: true };
+  }
+
+  async requestAdminVerify(email: string) {
+    const normalizedEmail = email.trim().toLowerCase();
+    const admin = await this.prisma.adminUser.findFirst({
+      where: { email: normalizedEmail },
+      orderBy: { createdAt: "desc" }
+    });
+    if (!admin || admin.isVerified) {
+      return { ok: true };
+    }
+
+    const issued = await this.issueAdminVerifyToken(admin.id);
+    await this.emailService.sendAdminVerificationEmail({
+      email: admin.email,
+      token: issued.token
+    });
+
+    return {
+      ok: true,
+      ...(this.isDevMode() ? { verificationToken: issued.token } : {})
+    };
+  }
+
+  async verifyAdmin(token: string, res: Response) {
+    const admin = await this.prisma.adminUser.findFirst({
+      where: { verifyToken: token }
+    });
+
+    if (!admin || !admin.verifyTokenExp || admin.verifyTokenExp < new Date()) {
+      throw new UnauthorizedException("Invalid or expired verification token");
+    }
+
+    const updatedAdmin = await this.prisma.adminUser.update({
+      where: { id: admin.id },
+      data: {
+        isVerified: true,
+        verifyToken: null,
+        verifyTokenExp: null
+      }
+    });
+
+    const organization = await this.prisma.organization.findUnique({
+      where: { id: updatedAdmin.organizationId },
+      select: { adminEmails: true }
+    });
+
+    if (organization) {
+      await this.prisma.organization.update({
+        where: { id: updatedAdmin.organizationId },
+        data: {
+          adminEmails: Array.from(new Set([...organization.adminEmails, updatedAdmin.email]))
+        }
+      });
+    }
+
+    const jwtToken = this.jwtService.sign({
+      sub: updatedAdmin.id,
+      orgId: updatedAdmin.organizationId,
+      email: updatedAdmin.email,
+      role: "admin",
+      permissions:
+        Array.isArray(updatedAdmin.permissions) && updatedAdmin.permissions.length > 0
+          ? updatedAdmin.permissions
+          : ADMIN_PERMISSIONS
+    });
+
+    this.setCookie(res, jwtToken);
+
+    return {
+      ok: true,
+      admin: {
+        id: updatedAdmin.id,
+        email: updatedAdmin.email,
+        orgId: updatedAdmin.organizationId
+      }
+    };
   }
 
   async requestStaffReset(email: string) {

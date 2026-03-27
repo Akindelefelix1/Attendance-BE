@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RegisterAdminDto = exports.ResetPasswordDto = exports.VerifyTokenDto = exports.RequestEmailDto = exports.StaffLoginDto = exports.AdminLoginDto = void 0;
+exports.RequestAdminVerifyDto = exports.VerifyAdminDto = exports.RegisterAdminDto = exports.ResetPasswordDto = exports.VerifyTokenDto = exports.RequestEmailDto = exports.StaffLoginDto = exports.AdminLoginDto = void 0;
 const swagger_1 = require("@nestjs/swagger");
 const class_validator_1 = require("class-validator");
 class AdminLoginDto {
@@ -103,4 +103,23 @@ __decorate([
     (0, class_validator_1.MinLength)(6),
     __metadata("design:type", String)
 ], RegisterAdminDto.prototype, "password", void 0);
+class VerifyAdminDto {
+    token;
+}
+exports.VerifyAdminDto = VerifyAdminDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: "97bf5946-74b8-4a99-abcd-b4ee18abbe12" }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], VerifyAdminDto.prototype, "token", void 0);
+class RequestAdminVerifyDto {
+    email;
+}
+exports.RequestAdminVerifyDto = RequestAdminVerifyDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: "admin@felix.com" }),
+    (0, class_validator_1.IsEmail)(),
+    __metadata("design:type", String)
+], RequestAdminVerifyDto.prototype, "email", void 0);
 //# sourceMappingURL=auth.dto.js.map

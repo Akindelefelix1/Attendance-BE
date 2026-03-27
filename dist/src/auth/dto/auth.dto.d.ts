@@ -21,3 +21,9 @@ export declare class RegisterAdminDto {
     email: string;
     password: string;
 }
+export declare class VerifyAdminDto {
+    token: string;
+}
+export declare class RequestAdminVerifyDto {
+    email: string;
+}

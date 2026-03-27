@@ -12,12 +12,14 @@ const jwt_1 = require("@nestjs/jwt");
 const auth_controller_1 = require("./auth.controller");
 const auth_service_1 = require("./auth.service");
 const jwt_strategy_1 = require("./jwt.strategy");
+const notifications_module_1 = require("../notifications/notifications.module");
 let AuthModule = class AuthModule {
 };
 exports.AuthModule = AuthModule;
 exports.AuthModule = AuthModule = __decorate([
     (0, common_1.Module)({
         imports: [
+            notifications_module_1.NotificationsModule,
             jwt_1.JwtModule.register({
                 secret: process.env.JWT_SECRET ?? "dev-secret",
                 signOptions: { expiresIn: "7d" }

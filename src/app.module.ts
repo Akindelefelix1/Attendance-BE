@@ -9,6 +9,7 @@ import { SettingsModule } from "./settings/settings.module";
 import { AuthModule } from "./auth/auth.module";
 import { AnalyticsModule } from "./analytics/analytics.module";
 import { DisposableAttendanceModule } from "./disposable-attendance/disposable-attendance.module";
+import { NotificationsModule } from "./notifications/notifications.module";
 
 @Module({
   imports: [
@@ -19,7 +20,8 @@ import { DisposableAttendanceModule } from "./disposable-attendance/disposable-a
     AttendanceModule,
     SettingsModule,
     AnalyticsModule,
-    DisposableAttendanceModule
+    DisposableAttendanceModule,
+    NotificationsModule
   ],
   controllers: [AppController],
   providers: [AppService]

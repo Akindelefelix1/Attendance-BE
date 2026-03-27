@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { AuthService } from "./auth.service";
-import { AdminLoginDto, RegisterAdminDto, RequestEmailDto, ResetPasswordDto, StaffLoginDto, VerifyTokenDto } from "./dto/auth.dto";
+import { AdminLoginDto, RequestAdminVerifyDto, RegisterAdminDto, RequestEmailDto, ResetPasswordDto, StaffLoginDto, VerifyAdminDto, VerifyTokenDto } from "./dto/auth.dto";
 export declare class AuthController {
     private readonly authService;
     constructor(authService: AuthService);
@@ -39,6 +39,21 @@ export declare class AuthController {
         ok: boolean;
     }>;
     register(body: RegisterAdminDto, res: Response): Promise<{
+        verificationToken?: `${string}-${string}-${string}-${string}-${string}` | undefined;
+        admin: {
+            id: string;
+            email: string;
+            orgId: string;
+        };
+        verificationRequired: boolean;
+        message: string;
+    }>;
+    requestAdminVerify(body: RequestAdminVerifyDto): Promise<{
+        verificationToken?: `${string}-${string}-${string}-${string}-${string}` | undefined;
+        ok: boolean;
+    }>;
+    verifyAdmin(body: VerifyAdminDto, res: Response): Promise<{
+        ok: boolean;
         admin: {
             id: string;
             email: string;

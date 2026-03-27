@@ -46,6 +46,12 @@ let AuthController = class AuthController {
         const result = await this.authService.registerAdmin(body.orgId, body.email, body.password, res);
         return result;
     }
+    requestAdminVerify(body) {
+        return this.authService.requestAdminVerify(body.email);
+    }
+    verifyAdmin(body, res) {
+        return this.authService.verifyAdmin(body.token, res);
+    }
     me(req) {
         return this.authService.me(req);
     }
@@ -126,6 +132,26 @@ __decorate([
     __metadata("design:paramtypes", [auth_dto_1.RegisterAdminDto, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "register", null);
+__decorate([
+    (0, common_1.Post)("admin/request-verify"),
+    (0, swagger_1.ApiOperation)({ summary: "Request admin verification token" }),
+    (0, swagger_1.ApiOkResponse)({ description: "Verification request accepted" }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [auth_dto_1.RequestAdminVerifyDto]),
+    __metadata("design:returntype", void 0)
+], AuthController.prototype, "requestAdminVerify", null);
+__decorate([
+    (0, common_1.Post)("admin/verify"),
+    (0, swagger_1.ApiOperation)({ summary: "Verify admin account" }),
+    (0, swagger_1.ApiOkResponse)({ description: "Admin account verified" }),
+    (0, swagger_1.ApiUnauthorizedResponse)({ description: "Invalid or expired token" }),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Res)({ passthrough: true })),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [auth_dto_1.VerifyAdminDto, Object]),
+    __metadata("design:returntype", void 0)
+], AuthController.prototype, "verifyAdmin", null);
 __decorate([
     (0, common_1.Get)("me"),
     (0, swagger_1.ApiOperation)({ summary: "Get current authenticated user" }),

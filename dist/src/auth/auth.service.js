@@ -48,6 +48,7 @@ const jwt_1 = require("@nestjs/jwt");
 const bcrypt = __importStar(require("bcryptjs"));
 const prisma_service_1 = require("../prisma/prisma.service");
 const crypto = __importStar(require("crypto"));
+const email_service_1 = require("../notifications/email.service");
 const COOKIE_NAME = "attendance_token";
 const ADMIN_PERMISSIONS = [
     "manage_organizations",
@@ -57,12 +58,40 @@ const ADMIN_PERMISSIONS = [
     "manage_settings"
 ];
 const STAFF_PERMISSIONS = ["manage_attendance"];
+const ADMIN_VERIFY_TOKEN_EXPIRY_MS = 1000 * 60 * 60 * 24;
 let AuthService = class AuthService {
     prisma;
     jwtService;
-    constructor(prisma, jwtService) {
+    emailService;
+    constructor(prisma, jwtService, emailService) {
         this.prisma = prisma;
         this.jwtService = jwtService;
+        this.emailService = emailService;
+    }
+    isDevMode() {
+        return (process.env.NODE_ENV ?? "development") !== "production";
+    }
+    createAdminVerifyToken() {
+        return crypto.randomUUID();
+    }
+    getVerifyExpiryDate() {
+        return new Date(Date.now() + ADMIN_VERIFY_TOKEN_EXPIRY_MS);
+    }
+    async issueAdminVerifyToken(adminId) {
+        const token = this.createAdminVerifyToken();
+        const verifyTokenExp = this.getVerifyExpiryDate();
+        const admin = await this.prisma.adminUser.update({
+            where: { id: adminId },
+            data: {
+                verifyToken: token,
+                verifyTokenExp
+            }
+        });
+        return {
+            admin,
+            token,
+            verifyTokenExp
+        };
     }
     getAdminLimit(planTier) {
         if (planTier === "pro")
@@ -113,6 +142,7 @@ let AuthService = class AuthService {
         });
     }
     async registerAdmin(orgId, email, password, res) {
+        this.clearCookie(res);
         const organization = await this.prisma.organization.findUnique({
             where: { id: orgId }
         });
@@ -132,24 +162,21 @@ let AuthService = class AuthService {
                 organization: { connect: { id: orgId } },
                 email: email.trim().toLowerCase(),
                 passwordHash,
+                isVerified: false,
                 permissions: [...ADMIN_PERMISSIONS]
             }
         });
-        await this.prisma.organization.update({
-            where: { id: orgId },
-            data: {
-                adminEmails: Array.from(new Set([...organization.adminEmails, admin.email]))
-            }
-        });
-        const token = this.jwtService.sign({
-            sub: admin.id,
-            orgId,
+        const { token } = await this.issueAdminVerifyToken(admin.id);
+        await this.emailService.sendAdminVerificationEmail({
             email: admin.email,
-            role: "admin",
-            permissions: admin.permissions.length ? admin.permissions : ADMIN_PERMISSIONS
+            token
         });
-        this.setCookie(res, token);
-        return { admin: { id: admin.id, email: admin.email, orgId } };
+        return {
+            admin: { id: admin.id, email: admin.email, orgId },
+            verificationRequired: true,
+            message: "Verification email sent. Please verify your email before login.",
+            ...(this.isDevMode() ? { verificationToken: token } : {})
+        };
     }
     async login(email, password, res) {
         const normalized = this.normalizeCredentials(email, password);
@@ -176,6 +203,14 @@ let AuthService = class AuthService {
         }
         if (!matchedAdmin) {
             throw new common_1.UnauthorizedException("Invalid credentials");
+        }
+        if (!matchedAdmin.isVerified) {
+            const issued = await this.issueAdminVerifyToken(matchedAdmin.id);
+            await this.emailService.sendAdminVerificationEmail({
+                email: matchedAdmin.email,
+                token: issued.token
+            });
+            throw new common_1.UnauthorizedException("Email not verified. We sent a new verification email.");
         }
         const token = this.jwtService.sign({
             sub: matchedAdmin.id,
@@ -277,6 +312,71 @@ let AuthService = class AuthService {
         });
         return { ok: true };
     }
+    async requestAdminVerify(email) {
+        const normalizedEmail = email.trim().toLowerCase();
+        const admin = await this.prisma.adminUser.findFirst({
+            where: { email: normalizedEmail },
+            orderBy: { createdAt: "desc" }
+        });
+        if (!admin || admin.isVerified) {
+            return { ok: true };
+        }
+        const issued = await this.issueAdminVerifyToken(admin.id);
+        await this.emailService.sendAdminVerificationEmail({
+            email: admin.email,
+            token: issued.token
+        });
+        return {
+            ok: true,
+            ...(this.isDevMode() ? { verificationToken: issued.token } : {})
+        };
+    }
+    async verifyAdmin(token, res) {
+        const admin = await this.prisma.adminUser.findFirst({
+            where: { verifyToken: token }
+        });
+        if (!admin || !admin.verifyTokenExp || admin.verifyTokenExp < new Date()) {
+            throw new common_1.UnauthorizedException("Invalid or expired verification token");
+        }
+        const updatedAdmin = await this.prisma.adminUser.update({
+            where: { id: admin.id },
+            data: {
+                isVerified: true,
+                verifyToken: null,
+                verifyTokenExp: null
+            }
+        });
+        const organization = await this.prisma.organization.findUnique({
+            where: { id: updatedAdmin.organizationId },
+            select: { adminEmails: true }
+        });
+        if (organization) {
+            await this.prisma.organization.update({
+                where: { id: updatedAdmin.organizationId },
+                data: {
+                    adminEmails: Array.from(new Set([...organization.adminEmails, updatedAdmin.email]))
+                }
+            });
+        }
+        const jwtToken = this.jwtService.sign({
+            sub: updatedAdmin.id,
+            orgId: updatedAdmin.organizationId,
+            email: updatedAdmin.email,
+            role: "admin",
+            permissions: Array.isArray(updatedAdmin.permissions) && updatedAdmin.permissions.length > 0
+                ? updatedAdmin.permissions
+                : ADMIN_PERMISSIONS
+        });
+        this.setCookie(res, jwtToken);
+        return {
+            ok: true,
+            admin: {
+                id: updatedAdmin.id,
+                email: updatedAdmin.email,
+                orgId: updatedAdmin.organizationId
+            }
+        };
+    }
     async requestStaffReset(email) {
         const staff = await this.prisma.staffMember.findFirst({
             where: { email: email.trim().toLowerCase() }
@@ -317,6 +417,7 @@ exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        jwt_1.JwtService])
+        jwt_1.JwtService,
+        email_service_1.EmailService])
 ], AuthService);
 //# sourceMappingURL=auth.service.js.map

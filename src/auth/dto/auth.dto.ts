@@ -63,3 +63,16 @@ export class RegisterAdminDto {
   @MinLength(6)
   password!: string;
 }
+
+export class VerifyAdminDto {
+  @ApiProperty({ example: "97bf5946-74b8-4a99-abcd-b4ee18abbe12" })
+  @IsString()
+  @IsNotEmpty()
+  token!: string;
+}
+
+export class RequestAdminVerifyDto {
+  @ApiProperty({ example: "admin@felix.com" })
+  @IsEmail()
+  email!: string;
+}

@@ -11,10 +11,12 @@ import type { Request, Response } from "express";
 import { AuthService } from "./auth.service";
 import {
   AdminLoginDto,
+  RequestAdminVerifyDto,
   RegisterAdminDto,
   RequestEmailDto,
   ResetPasswordDto,
   StaffLoginDto,
+  VerifyAdminDto,
   VerifyTokenDto
 } from "./dto/auth.dto";
 
@@ -91,6 +93,24 @@ export class AuthController {
       res
     );
     return result;
+  }
+
+  @Post("admin/request-verify")
+  @ApiOperation({ summary: "Request admin verification token" })
+  @ApiOkResponse({ description: "Verification request accepted" })
+  requestAdminVerify(@Body() body: RequestAdminVerifyDto) {
+    return this.authService.requestAdminVerify(body.email);
+  }
+
+  @Post("admin/verify")
+  @ApiOperation({ summary: "Verify admin account" })
+  @ApiOkResponse({ description: "Admin account verified" })
+  @ApiUnauthorizedResponse({ description: "Invalid or expired token" })
+  verifyAdmin(
+    @Body() body: VerifyAdminDto,
+    @Res({ passthrough: true }) res: Response
+  ) {
+    return this.authService.verifyAdmin(body.token, res);
   }
 
   @Get("me")

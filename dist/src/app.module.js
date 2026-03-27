@@ -18,6 +18,7 @@ const settings_module_1 = require("./settings/settings.module");
 const auth_module_1 = require("./auth/auth.module");
 const analytics_module_1 = require("./analytics/analytics.module");
 const disposable_attendance_module_1 = require("./disposable-attendance/disposable-attendance.module");
+const notifications_module_1 = require("./notifications/notifications.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -31,7 +32,8 @@ exports.AppModule = AppModule = __decorate([
             attendance_module_1.AttendanceModule,
             settings_module_1.SettingsModule,
             analytics_module_1.AnalyticsModule,
-            disposable_attendance_module_1.DisposableAttendanceModule
+            disposable_attendance_module_1.DisposableAttendanceModule,
+            notifications_module_1.NotificationsModule
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService]

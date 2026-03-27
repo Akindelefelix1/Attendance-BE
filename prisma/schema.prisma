@@ -112,6 +112,9 @@ model AdminUser {
   organizationId String
   email          String
   passwordHash   String
+  isVerified     Boolean       @default(false)
+  verifyToken    String?
+  verifyTokenExp DateTime?
   appRole        AppRole       @default(admin)
   permissions    Permission[]
   createdAt      DateTime      @default(now())
