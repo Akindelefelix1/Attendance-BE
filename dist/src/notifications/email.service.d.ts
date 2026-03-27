@@ -8,6 +8,7 @@ export declare class EmailService {
     isDeliveryConfigured(): boolean;
     private getFrontendBaseUrl;
     private getAdminVerifyUrl;
+    private resolveSmtpTarget;
     private getTransporter;
     private getFromAddress;
     sendAdminVerificationEmail(payload: AdminVerificationPayload): Promise<{

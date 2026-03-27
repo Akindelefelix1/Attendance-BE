@@ -1,4 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
+import { resolve4 } from "node:dns/promises";
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
 
@@ -39,7 +40,27 @@ export class EmailService {
     return `${this.getFrontendBaseUrl()}/#/verify-email?token=${encodeURIComponent(token)}`;
   }
 
-  private getTransporter() {
+  private async resolveSmtpTarget(host: string, family: 4 | 6) {
+    if (family !== 4) {
+      return { host, tlsServername: host };
+    }
+
+    try {
+      const ipv4Records = await resolve4(host);
+      if (ipv4Records.length > 0) {
+        return { host: ipv4Records[0], tlsServername: host };
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Could not resolve IPv4 for SMTP host ${host}. Falling back to default DNS resolution.`
+      );
+      this.logger.debug(String(error));
+    }
+
+    return { host, tlsServername: host };
+  }
+
+  private async getTransporter() {
     if (this.transporter) {
       return this.transporter;
     }
@@ -56,13 +77,19 @@ export class EmailService {
     const secure =
       configuredSecure !== undefined ? configuredSecure === "true" : port === 465;
     const configuredFamily = Number(process.env.SMTP_FAMILY?.trim() ?? "4");
-    const family = configuredFamily === 4 || configuredFamily === 6 ? configuredFamily : 4;
+    const family = (configuredFamily === 4 || configuredFamily === 6
+      ? configuredFamily
+      : 4) as 4 | 6;
+    const target = await this.resolveSmtpTarget(host, family);
 
     this.transporter = nodemailer.createTransport({
-      host,
+      host: target.host,
       port,
       secure,
       family,
+      tls: {
+        servername: target.tlsServername
+      },
       auth: {
         user,
         pass
@@ -78,7 +105,7 @@ export class EmailService {
 
   async sendAdminVerificationEmail(payload: AdminVerificationPayload) {
     const verifyUrl = this.getAdminVerifyUrl(payload.token);
-    const transporter = this.getTransporter();
+    const transporter = await this.getTransporter();
 
     if (!transporter) {
       this.logger.log(
@@ -87,13 +114,21 @@ export class EmailService {
       return { verifyUrl };
     }
 
-    await transporter.sendMail({
-      from: this.getFromAddress(),
-      to: payload.email,
-      subject: "Verify your Attendance admin email",
-      text: `Welcome to Attendance. Verify your admin email with this link: ${verifyUrl}`,
-      html: `<p>Welcome to Attendance.</p><p>Please verify your admin email by clicking <a href="${verifyUrl}">this link</a>.</p><p>If you did not request this, you can ignore this email.</p>`
-    });
+    try {
+      await transporter.sendMail({
+        from: this.getFromAddress(),
+        to: payload.email,
+        subject: "Verify your Attendance admin email",
+        text: `Welcome to Attendance. Verify your admin email with this link: ${verifyUrl}`,
+        html: `<p>Welcome to Attendance.</p><p>Please verify your admin email by clicking <a href="${verifyUrl}">this link</a>.</p><p>If you did not request this, you can ignore this email.</p>`
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to send verification email to ${payload.email}.`,
+        error instanceof Error ? error.stack : String(error)
+      );
+      return { verifyUrl };
+    }
 
     return { verifyUrl };
   }

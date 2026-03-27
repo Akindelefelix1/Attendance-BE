@@ -12,6 +12,7 @@ var EmailService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EmailService = void 0;
 const common_1 = require("@nestjs/common");
+const promises_1 = require("node:dns/promises");
 const nodemailer_1 = __importDefault(require("nodemailer"));
 let EmailService = EmailService_1 = class EmailService {
     logger = new common_1.Logger(EmailService_1.name);
@@ -37,7 +38,23 @@ let EmailService = EmailService_1 = class EmailService {
     getAdminVerifyUrl(token) {
         return `${this.getFrontendBaseUrl()}/#/verify-email?token=${encodeURIComponent(token)}`;
     }
-    getTransporter() {
+    async resolveSmtpTarget(host, family) {
+        if (family !== 4) {
+            return { host, tlsServername: host };
+        }
+        try {
+            const ipv4Records = await (0, promises_1.resolve4)(host);
+            if (ipv4Records.length > 0) {
+                return { host: ipv4Records[0], tlsServername: host };
+            }
+        }
+        catch (error) {
+            this.logger.warn(`Could not resolve IPv4 for SMTP host ${host}. Falling back to default DNS resolution.`);
+            this.logger.debug(String(error));
+        }
+        return { host, tlsServername: host };
+    }
+    async getTransporter() {
         if (this.transporter) {
             return this.transporter;
         }
@@ -51,12 +68,18 @@ let EmailService = EmailService_1 = class EmailService {
         const configuredSecure = process.env.SMTP_SECURE?.trim().toLowerCase();
         const secure = configuredSecure !== undefined ? configuredSecure === "true" : port === 465;
         const configuredFamily = Number(process.env.SMTP_FAMILY?.trim() ?? "4");
-        const family = configuredFamily === 4 || configuredFamily === 6 ? configuredFamily : 4;
+        const family = (configuredFamily === 4 || configuredFamily === 6
+            ? configuredFamily
+            : 4);
+        const target = await this.resolveSmtpTarget(host, family);
         this.transporter = nodemailer_1.default.createTransport({
-            host,
+            host: target.host,
             port,
             secure,
             family,
+            tls: {
+                servername: target.tlsServername
+            },
             auth: {
                 user,
                 pass
@@ -69,18 +92,24 @@ let EmailService = EmailService_1 = class EmailService {
     }
     async sendAdminVerificationEmail(payload) {
         const verifyUrl = this.getAdminVerifyUrl(payload.token);
-        const transporter = this.getTransporter();
+        const transporter = await this.getTransporter();
         if (!transporter) {
             this.logger.log(`SMTP not configured. Verification link for ${payload.email}: ${verifyUrl}`);
             return { verifyUrl };
         }
-        await transporter.sendMail({
-            from: this.getFromAddress(),
-            to: payload.email,
-            subject: "Verify your Attendance admin email",
-            text: `Welcome to Attendance. Verify your admin email with this link: ${verifyUrl}`,
-            html: `<p>Welcome to Attendance.</p><p>Please verify your admin email by clicking <a href="${verifyUrl}">this link</a>.</p><p>If you did not request this, you can ignore this email.</p>`
-        });
+        try {
+            await transporter.sendMail({
+                from: this.getFromAddress(),
+                to: payload.email,
+                subject: "Verify your Attendance admin email",
+                text: `Welcome to Attendance. Verify your admin email with this link: ${verifyUrl}`,
+                html: `<p>Welcome to Attendance.</p><p>Please verify your admin email by clicking <a href="${verifyUrl}">this link</a>.</p><p>If you did not request this, you can ignore this email.</p>`
+            });
+        }
+        catch (error) {
+            this.logger.error(`Failed to send verification email to ${payload.email}.`, error instanceof Error ? error.stack : String(error));
+            return { verifyUrl };
+        }
         return { verifyUrl };
     }
 };
