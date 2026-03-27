@@ -111,7 +111,7 @@ export class EmailService {
       this.logger.log(
         `SMTP not configured. Verification link for ${payload.email}: ${verifyUrl}`
       );
-      return { verifyUrl };
+      return { verifyUrl, delivered: false };
     }
 
     try {
@@ -127,9 +127,9 @@ export class EmailService {
         `Failed to send verification email to ${payload.email}.`,
         error instanceof Error ? error.stack : String(error)
       );
-      return { verifyUrl };
+      return { verifyUrl, delivered: false };
     }
 
-    return { verifyUrl };
+    return { verifyUrl, delivered: true };
   }
 }

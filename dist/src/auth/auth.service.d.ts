@@ -51,6 +51,9 @@ export declare class AuthService {
         ok: boolean;
     }>;
     requestAdminVerify(email: string): Promise<{
+        ok: boolean;
+    } | {
+        emailDeliveryAvailable: boolean;
         verificationToken?: `${string}-${string}-${string}-${string}-${string}` | undefined;
         ok: boolean;
     }>;

@@ -95,7 +95,7 @@ let EmailService = EmailService_1 = class EmailService {
         const transporter = await this.getTransporter();
         if (!transporter) {
             this.logger.log(`SMTP not configured. Verification link for ${payload.email}: ${verifyUrl}`);
-            return { verifyUrl };
+            return { verifyUrl, delivered: false };
         }
         try {
             await transporter.sendMail({
@@ -108,9 +108,9 @@ let EmailService = EmailService_1 = class EmailService {
         }
         catch (error) {
             this.logger.error(`Failed to send verification email to ${payload.email}.`, error instanceof Error ? error.stack : String(error));
-            return { verifyUrl };
+            return { verifyUrl, delivered: false };
         }
-        return { verifyUrl };
+        return { verifyUrl, delivered: true };
     }
 };
 exports.EmailService = EmailService;

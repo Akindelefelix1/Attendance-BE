@@ -13,6 +13,7 @@ export declare class EmailService {
     private getFromAddress;
     sendAdminVerificationEmail(payload: AdminVerificationPayload): Promise<{
         verifyUrl: string;
+        delivered: boolean;
     }>;
 }
 export {};

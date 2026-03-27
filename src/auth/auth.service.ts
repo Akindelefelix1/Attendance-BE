@@ -149,10 +149,40 @@ export class AuthService {
 
     if (emailVerificationEnabled) {
       const { token } = await this.issueAdminVerifyToken(admin.id);
-      await this.emailService.sendAdminVerificationEmail({
+      const delivery = await this.emailService.sendAdminVerificationEmail({
         email: admin.email,
         token
       });
+
+      if (!delivery.delivered) {
+        const verifiedAdmin = await this.prisma.adminUser.update({
+          where: { id: admin.id },
+          data: {
+            isVerified: true,
+            verifyToken: null,
+            verifyTokenExp: null
+          }
+        });
+
+        const jwtToken = this.jwtService.sign({
+          sub: verifiedAdmin.id,
+          orgId: verifiedAdmin.organizationId,
+          email: verifiedAdmin.email,
+          role: "admin",
+          permissions:
+            Array.isArray(verifiedAdmin.permissions) &&
+            verifiedAdmin.permissions.length > 0
+              ? verifiedAdmin.permissions
+              : ADMIN_PERMISSIONS
+        });
+        this.setCookie(res, jwtToken);
+
+        return {
+          admin: { id: verifiedAdmin.id, email: verifiedAdmin.email, orgId },
+          verificationRequired: false,
+          message: "Account created successfully. Email delivery is temporarily unavailable."
+        };
+      }
 
       return {
         admin: { id: admin.id, email: admin.email, orgId },
@@ -218,13 +248,24 @@ export class AuthService {
         });
       } else {
         const issued = await this.issueAdminVerifyToken(matchedAdmin.id);
-        await this.emailService.sendAdminVerificationEmail({
+        const delivery = await this.emailService.sendAdminVerificationEmail({
           email: matchedAdmin.email,
           token: issued.token
         });
-        throw new UnauthorizedException(
-          "Email not verified. We sent a new verification email."
-        );
+        if (!delivery.delivered) {
+          matchedAdmin = await this.prisma.adminUser.update({
+            where: { id: matchedAdmin.id },
+            data: {
+              isVerified: true,
+              verifyToken: null,
+              verifyTokenExp: null
+            }
+          });
+        } else {
+          throw new UnauthorizedException(
+            "Email not verified. We sent a new verification email."
+          );
+        }
       }
     }
 
@@ -347,14 +388,26 @@ export class AuthService {
     }
 
     const issued = await this.issueAdminVerifyToken(admin.id);
-    await this.emailService.sendAdminVerificationEmail({
+    const delivery = await this.emailService.sendAdminVerificationEmail({
       email: admin.email,
       token: issued.token
     });
 
+    if (!delivery.delivered) {
+      await this.prisma.adminUser.update({
+        where: { id: admin.id },
+        data: {
+          isVerified: true,
+          verifyToken: null,
+          verifyTokenExp: null
+        }
+      });
+    }
+
     return {
       ok: true,
-      ...(this.isDevMode() ? { verificationToken: issued.token } : {})
+      ...(this.isDevMode() ? { verificationToken: issued.token } : {}),
+      emailDeliveryAvailable: delivery.delivered
     };
   }
 
