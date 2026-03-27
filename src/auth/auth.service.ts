@@ -33,6 +33,13 @@ export class AuthService {
     return (process.env.NODE_ENV ?? "development") !== "production";
   }
 
+  private isAdminEmailVerificationRequired() {
+    return (
+      (process.env.ADMIN_EMAIL_VERIFICATION_REQUIRED ?? "false").trim().toLowerCase() ===
+      "true"
+    );
+  }
+
   private createAdminVerifyToken() {
     return crypto.randomUUID();
   }
@@ -122,7 +129,8 @@ export class AuthService {
 
   async registerAdmin(orgId: string, email: string, password: string, res: Response) {
     this.clearCookie(res);
-    const emailVerificationEnabled = this.emailService.isDeliveryConfigured();
+    const emailVerificationEnabled =
+      this.isAdminEmailVerificationRequired() && this.emailService.isDeliveryConfigured();
     const organization = await this.prisma.organization.findUnique({
       where: { id: orgId }
     });
@@ -215,7 +223,10 @@ export class AuthService {
     }
 
     if (!matchedAdmin.isVerified) {
-      if (!this.emailService.isDeliveryConfigured()) {
+      if (
+        !this.isAdminEmailVerificationRequired() ||
+        !this.emailService.isDeliveryConfigured()
+      ) {
         matchedAdmin = await this.prisma.adminUser.update({
           where: { id: matchedAdmin.id },
           data: {

@@ -73,6 +73,10 @@ let AuthService = AuthService_1 = class AuthService {
     isDevMode() {
         return (process.env.NODE_ENV ?? "development") !== "production";
     }
+    isAdminEmailVerificationRequired() {
+        return ((process.env.ADMIN_EMAIL_VERIFICATION_REQUIRED ?? "false").trim().toLowerCase() ===
+            "true");
+    }
     createAdminVerifyToken() {
         return crypto.randomUUID();
     }
@@ -145,7 +149,7 @@ let AuthService = AuthService_1 = class AuthService {
     }
     async registerAdmin(orgId, email, password, res) {
         this.clearCookie(res);
-        const emailVerificationEnabled = this.emailService.isDeliveryConfigured();
+        const emailVerificationEnabled = this.isAdminEmailVerificationRequired() && this.emailService.isDeliveryConfigured();
         const organization = await this.prisma.organization.findUnique({
             where: { id: orgId }
         });
@@ -227,7 +231,8 @@ let AuthService = AuthService_1 = class AuthService {
             throw new common_1.UnauthorizedException("Invalid credentials");
         }
         if (!matchedAdmin.isVerified) {
-            if (!this.emailService.isDeliveryConfigured()) {
+            if (!this.isAdminEmailVerificationRequired() ||
+                !this.emailService.isDeliveryConfigured()) {
                 matchedAdmin = await this.prisma.adminUser.update({
                     where: { id: matchedAdmin.id },
                     data: {

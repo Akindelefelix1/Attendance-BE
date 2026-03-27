@@ -9,6 +9,7 @@ export declare class AuthService {
     private readonly logger;
     constructor(prisma: PrismaService, jwtService: JwtService, emailService: EmailService);
     private isDevMode;
+    private isAdminEmailVerificationRequired;
     private createAdminVerifyToken;
     private getVerifyExpiryDate;
     private issueAdminVerifyToken;
