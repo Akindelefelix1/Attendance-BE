@@ -8,12 +8,23 @@ type AdminVerificationPayload = {
   token: string;
 };
 
+type EmailDeliveryResult = {
+  verifyUrl: string;
+  delivered: boolean;
+  provider: "brevo-api" | "smtp" | "none";
+};
+
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
   private transporter: Transporter | null = null;
 
   isDeliveryConfigured() {
+    const brevoApiKey = process.env.BREVO_API_KEY?.trim();
+    if (brevoApiKey) {
+      return true;
+    }
+
     const host = process.env.SMTP_HOST?.trim();
     const portRaw = process.env.SMTP_PORT?.trim();
     const user = process.env.SMTP_USER?.trim();
@@ -103,15 +114,86 @@ export class EmailService {
     return process.env.SMTP_FROM?.trim() || "Attendance <no-reply@attendance.local>";
   }
 
+  private parseFromAddress() {
+    const from = this.getFromAddress();
+    const matched = from.match(/^(.*)<([^>]+)>$/);
+    if (!matched) {
+      return {
+        name: "Attendance",
+        email: from.trim()
+      };
+    }
+
+    return {
+      name: matched[1].trim().replace(/^"|"$/g, "") || "Attendance",
+      email: matched[2].trim()
+    };
+  }
+
+  private async sendViaBrevoApi(payload: AdminVerificationPayload, verifyUrl: string) {
+    const apiKey = process.env.BREVO_API_KEY?.trim();
+    if (!apiKey) {
+      return null;
+    }
+
+    const from = this.parseFromAddress();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
+    try {
+      const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "api-key": apiKey
+        },
+        body: JSON.stringify({
+          sender: {
+            name: from.name,
+            email: from.email
+          },
+          to: [{ email: payload.email }],
+          subject: "Verify your Attendance admin email",
+          textContent: `Welcome to Attendance. Verify your admin email with this link: ${verifyUrl}`,
+          htmlContent: `<p>Welcome to Attendance.</p><p>Please verify your admin email by clicking <a href=\"${verifyUrl}\">this link</a>.</p><p>If you did not request this, you can ignore this email.</p>`
+        }),
+        signal: controller.signal
+      });
+
+      if (!response.ok) {
+        const body = await response.text();
+        this.logger.error(
+          `Brevo API email send failed with status ${response.status}: ${body}`
+        );
+        return { verifyUrl, delivered: false, provider: "brevo-api" } as const;
+      }
+
+      return { verifyUrl, delivered: true, provider: "brevo-api" } as const;
+    } catch (error) {
+      this.logger.error(
+        `Brevo API email send failed for ${payload.email}.`,
+        error instanceof Error ? error.stack : String(error)
+      );
+      return { verifyUrl, delivered: false, provider: "brevo-api" } as const;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
   async sendAdminVerificationEmail(payload: AdminVerificationPayload) {
     const verifyUrl = this.getAdminVerifyUrl(payload.token);
+    const brevoApiResult = await this.sendViaBrevoApi(payload, verifyUrl);
+    if (brevoApiResult) {
+      return brevoApiResult;
+    }
+
     const transporter = await this.getTransporter();
 
     if (!transporter) {
       this.logger.log(
         `SMTP not configured. Verification link for ${payload.email}: ${verifyUrl}`
       );
-      return { verifyUrl, delivered: false };
+      return { verifyUrl, delivered: false, provider: "none" };
     }
 
     try {
@@ -127,9 +209,9 @@ export class EmailService {
         `Failed to send verification email to ${payload.email}.`,
         error instanceof Error ? error.stack : String(error)
       );
-      return { verifyUrl, delivered: false };
+      return { verifyUrl, delivered: false, provider: "smtp" };
     }
 
-    return { verifyUrl, delivered: true };
+    return { verifyUrl, delivered: true, provider: "smtp" };
   }
 }
