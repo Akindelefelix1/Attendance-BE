@@ -41,6 +41,7 @@ var __importStar = (this && this.__importStar) || (function () {
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var StaffService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.StaffService = void 0;
 const common_1 = require("@nestjs/common");
@@ -48,9 +49,10 @@ const prisma_service_1 = require("../prisma/prisma.service");
 const email_service_1 = require("../notifications/email.service");
 const crypto = __importStar(require("crypto"));
 const client_1 = require("@prisma/client");
-let StaffService = class StaffService {
+let StaffService = StaffService_1 = class StaffService {
     prisma;
     emailService;
+    logger = new common_1.Logger(StaffService_1.name);
     constructor(prisma, emailService) {
         this.prisma = prisma;
         this.emailService = emailService;
@@ -92,6 +94,16 @@ let StaffService = class StaffService {
             where: { id: organizationId },
             select: { name: true, adminEmails: true }
         });
+        void this.emailService
+            .sendStaffOnboardingEmail({
+            organizationName: organization?.name ?? "your organization",
+            staffEmail: created.email,
+            staffName: created.fullName,
+            resetToken: setupToken
+        })
+            .catch((error) => {
+            this.logger.error(`Failed to queue/send onboarding email to ${created.email}.`, error instanceof Error ? error.stack : String(error));
+        });
         if (organization) {
             void this.emailService
                 .sendOrganizationActivityEmail({
@@ -105,14 +117,6 @@ let StaffService = class StaffService {
                     { label: "Email", value: created.email },
                     { label: "Staff ID", value: created.id }
                 ]
-            })
-                .catch(() => undefined);
-            void this.emailService
-                .sendStaffOnboardingEmail({
-                organizationName: organization.name,
-                staffEmail: created.email,
-                staffName: created.fullName,
-                resetToken: setupToken
             })
                 .catch(() => undefined);
         }
@@ -252,7 +256,7 @@ let StaffService = class StaffService {
     }
 };
 exports.StaffService = StaffService;
-exports.StaffService = StaffService = __decorate([
+exports.StaffService = StaffService = StaffService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         email_service_1.EmailService])

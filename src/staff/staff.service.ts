@@ -1,4 +1,4 @@
-import { ConflictException, Injectable } from "@nestjs/common";
+import { ConflictException, Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { EmailService } from "../notifications/email.service";
 import * as crypto from "crypto";
@@ -6,6 +6,8 @@ import { Prisma } from "@prisma/client";
 
 @Injectable()
 export class StaffService {
+  private readonly logger = new Logger(StaffService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService
@@ -64,6 +66,20 @@ export class StaffService {
       select: { name: true, adminEmails: true }
     });
 
+    void this.emailService
+      .sendStaffOnboardingEmail({
+        organizationName: organization?.name ?? "your organization",
+        staffEmail: created.email,
+        staffName: created.fullName,
+        resetToken: setupToken
+      })
+      .catch((error) => {
+        this.logger.error(
+          `Failed to queue/send onboarding email to ${created.email}.`,
+          error instanceof Error ? error.stack : String(error)
+        );
+      });
+
     if (organization) {
       void this.emailService
         .sendOrganizationActivityEmail({
@@ -77,15 +93,6 @@ export class StaffService {
             { label: "Email", value: created.email },
             { label: "Staff ID", value: created.id }
           ]
-        })
-        .catch(() => undefined);
-
-      void this.emailService
-        .sendStaffOnboardingEmail({
-          organizationName: organization.name,
-          staffEmail: created.email,
-          staffName: created.fullName,
-          resetToken: setupToken
         })
         .catch(() => undefined);
     }

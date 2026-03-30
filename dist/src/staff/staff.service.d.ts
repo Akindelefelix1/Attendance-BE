@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 export declare class StaffService {
     private readonly prisma;
     private readonly emailService;
+    private readonly logger;
     constructor(prisma: PrismaService, emailService: EmailService);
     listByOrganization(organizationId: string): Prisma.PrismaPromise<{
         id: string;

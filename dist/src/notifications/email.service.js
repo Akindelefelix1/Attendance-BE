@@ -309,6 +309,12 @@ let EmailService = EmailService_1 = class EmailService {
             happenedAtISO
         });
         const delivery = await this.sendGenericEmail(recipients[0], subject, htmlContent, textContent);
+        if (delivery.delivered) {
+            this.logger.log(`Staff onboarding email sent to ${recipients[0]} for ${payload.organizationName} via ${delivery.provider}`);
+        }
+        else {
+            this.logger.warn(`Staff onboarding email not delivered to ${recipients[0]} for ${payload.organizationName}. Last provider attempted: ${delivery.provider}`);
+        }
         return {
             attempted: 1,
             delivered: delivery.delivered ? 1 : 0
@@ -337,6 +343,12 @@ let EmailService = EmailService_1 = class EmailService {
             happenedAtISO
         });
         const delivery = await this.sendGenericEmail(recipients[0], subject, htmlContent, textContent);
+        if (delivery.delivered) {
+            this.logger.log(`Staff password reset email sent to ${recipients[0]} for ${payload.organizationName} via ${delivery.provider}`);
+        }
+        else {
+            this.logger.warn(`Staff password reset email not delivered to ${recipients[0]} for ${payload.organizationName}. Last provider attempted: ${delivery.provider}`);
+        }
         return {
             attempted: 1,
             delivered: delivery.delivered ? 1 : 0

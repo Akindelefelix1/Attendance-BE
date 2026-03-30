@@ -441,6 +441,16 @@ export class EmailService {
       textContent
     );
 
+    if (delivery.delivered) {
+      this.logger.log(
+        `Staff onboarding email sent to ${recipients[0]} for ${payload.organizationName} via ${delivery.provider}`
+      );
+    } else {
+      this.logger.warn(
+        `Staff onboarding email not delivered to ${recipients[0]} for ${payload.organizationName}. Last provider attempted: ${delivery.provider}`
+      );
+    }
+
     return {
       attempted: 1,
       delivered: delivery.delivered ? 1 : 0
@@ -477,6 +487,16 @@ export class EmailService {
       htmlContent,
       textContent
     );
+
+    if (delivery.delivered) {
+      this.logger.log(
+        `Staff password reset email sent to ${recipients[0]} for ${payload.organizationName} via ${delivery.provider}`
+      );
+    } else {
+      this.logger.warn(
+        `Staff password reset email not delivered to ${recipients[0]} for ${payload.organizationName}. Last provider attempted: ${delivery.provider}`
+      );
+    }
 
     return {
       attempted: 1,
