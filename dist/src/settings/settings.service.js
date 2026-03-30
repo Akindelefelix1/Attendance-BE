@@ -45,8 +45,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SettingsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
-const bcrypt = __importStar(require("bcryptjs"));
 const email_service_1 = require("../notifications/email.service");
+const crypto = __importStar(require("crypto"));
 let SettingsService = class SettingsService {
     prisma;
     emailService;
@@ -76,32 +76,48 @@ let SettingsService = class SettingsService {
     }
     async updateSettings(organizationId, data) {
         const { staffLoginPassword, ...rest } = data;
-        let plainStaffLoginPassword = null;
+        let shouldRequireStaffReset = false;
         const updateData = {
             ...rest
         };
         if (typeof staffLoginPassword === "string") {
             const trimmed = staffLoginPassword.trim();
             if (trimmed.length > 0) {
-                plainStaffLoginPassword = trimmed;
-                updateData.staffLoginPasswordHash = await bcrypt.hash(trimmed, 10);
+                shouldRequireStaffReset = true;
+                updateData.staffLoginPasswordHash = null;
             }
         }
         const updated = await this.prisma.organization.update({
             where: { id: organizationId },
             data: updateData
         });
-        if (plainStaffLoginPassword) {
+        if (shouldRequireStaffReset) {
             const staffMembers = await this.prisma.staffMember.findMany({
                 where: { organizationId },
-                select: { email: true }
+                select: { id: true, fullName: true, email: true }
             });
-            void this.emailService
-                .sendStaffLoginPasswordUpdatedEmail({
+            const resetTokenExp = new Date(Date.now() + 1000 * 60 * 30);
+            const resets = staffMembers.map((member) => ({
+                id: member.id,
+                email: member.email,
+                fullName: member.fullName,
+                token: crypto.randomUUID()
+            }));
+            await this.prisma.$transaction(resets.map((reset) => this.prisma.staffMember.update({
+                where: { id: reset.id },
+                data: {
+                    passwordHash: null,
+                    resetToken: reset.token,
+                    resetTokenExp
+                }
+            })));
+            void Promise.all(resets.map((reset) => this.emailService.sendStaffPasswordResetEmail({
                 organizationName: updated.name,
-                staffEmails: staffMembers.map((member) => member.email),
-                staffLoginPassword: plainStaffLoginPassword
-            })
+                staffEmail: reset.email,
+                staffName: reset.fullName,
+                resetToken: reset.token,
+                reason: "Your organization updated staff access policy. Please set a new personal password."
+            })))
                 .catch(() => undefined);
         }
         return updated;

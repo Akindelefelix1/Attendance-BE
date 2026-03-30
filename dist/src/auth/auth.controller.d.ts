@@ -29,11 +29,8 @@ export declare class AuthController {
         ok: boolean;
     }>;
     requestReset(body: RequestEmailDto): Promise<{
+        token?: `${string}-${string}-${string}-${string}-${string}` | undefined;
         ok: boolean;
-        token?: undefined;
-    } | {
-        ok: boolean;
-        token: `${string}-${string}-${string}-${string}-${string}`;
     }>;
     reset(body: ResetPasswordDto): Promise<{
         ok: boolean;

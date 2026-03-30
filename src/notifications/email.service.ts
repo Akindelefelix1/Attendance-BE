@@ -23,12 +23,15 @@ type StaffOnboardingPayload = {
   organizationName: string;
   staffEmail: string;
   staffName: string;
+  resetToken: string;
 };
 
-type StaffPasswordBroadcastPayload = {
+type StaffPasswordResetPayload = {
   organizationName: string;
-  staffEmails: string[];
-  staffLoginPassword: string;
+  staffEmail: string;
+  staffName: string;
+  resetToken: string;
+  reason?: string;
 };
 
 type EmailDeliveryResult = {
@@ -87,6 +90,10 @@ export class EmailService {
 
   private getAdminVerifyUrl(token: string) {
     return `${this.getFrontendBaseUrl()}/#/verify-email?token=${encodeURIComponent(token)}`;
+  }
+
+  private getStaffResetUrl(token: string) {
+    return `${this.getFrontendBaseUrl()}/#/staff-reset-password?token=${encodeURIComponent(token)}`;
   }
 
   private async resolveSmtpTarget(host: string, family: 4 | 6) {
@@ -408,11 +415,13 @@ export class EmailService {
     const htmlContent = this.templateService.renderTemplate("staff-onboarded.html", {
       organizationName: payload.organizationName,
       staffName: payload.staffName,
+      setupUrl: this.getStaffResetUrl(payload.resetToken),
       happenedAtISO
     });
     const textContent = this.templateService.renderTemplate("staff-onboarded.txt", {
       organizationName: payload.organizationName,
       staffName: payload.staffName,
+      setupUrl: this.getStaffResetUrl(payload.resetToken),
       happenedAtISO
     });
 
@@ -429,50 +438,40 @@ export class EmailService {
     };
   }
 
-  async sendStaffLoginPasswordUpdatedEmail(payload: StaffPasswordBroadcastPayload) {
-    const recipients = this.normalizeEmails(payload.staffEmails);
+  async sendStaffPasswordResetEmail(payload: StaffPasswordResetPayload) {
+    const recipients = this.normalizeEmails([payload.staffEmail]);
     if (recipients.length === 0) {
-      this.logger.log(
-        `No staff recipients configured for staff password broadcast: ${payload.organizationName}`
-      );
       return { attempted: 0, delivered: 0 };
     }
 
     const happenedAtISO = new Date().toISOString();
-    const subject = `[Attendance] Staff Login Password Updated - ${payload.organizationName}`;
+    const resetUrl = this.getStaffResetUrl(payload.resetToken);
+    const subject = `[Attendance] Password Reset Required - ${payload.organizationName}`;
+    const htmlContent = this.templateService.renderTemplate("staff-password-reset.html", {
+      organizationName: payload.organizationName,
+      staffName: payload.staffName,
+      resetUrl,
+      reason: payload.reason || "Your account requires a password reset.",
+      happenedAtISO
+    });
+    const textContent = this.templateService.renderTemplate("staff-password-reset.txt", {
+      organizationName: payload.organizationName,
+      staffName: payload.staffName,
+      resetUrl,
+      reason: payload.reason || "Your account requires a password reset.",
+      happenedAtISO
+    });
 
-    const results = await Promise.all(
-      recipients.map(async (to) => {
-        const htmlContent = this.templateService.renderTemplate(
-          "staff-password-updated.html",
-          {
-            organizationName: payload.organizationName,
-            staffLoginPassword: payload.staffLoginPassword,
-            happenedAtISO
-          }
-        );
-        const textContent = this.templateService.renderTemplate(
-          "staff-password-updated.txt",
-          {
-            organizationName: payload.organizationName,
-            staffLoginPassword: payload.staffLoginPassword,
-            happenedAtISO
-          }
-        );
-
-        const delivery = await this.sendGenericEmail(to, subject, htmlContent, textContent);
-        return delivery.delivered;
-      })
-    );
-
-    const delivered = results.filter(Boolean).length;
-    this.logger.log(
-      `Staff password notifications sent: ${delivered}/${recipients.length} delivered for ${payload.organizationName}`
+    const delivery = await this.sendGenericEmail(
+      recipients[0],
+      subject,
+      htmlContent,
+      textContent
     );
 
     return {
-      attempted: recipients.length,
-      delivered
+      attempted: 1,
+      delivered: delivery.delivered ? 1 : 0
     };
   }
 

@@ -15,7 +15,10 @@
     <div class="card">
       <p>Hello {{staffName}},</p>
       <p>You have been onboarded to <strong>{{organizationName}}</strong>.</p>
-      <p>Please contact your organization admin to get your current staff login password if you do not have it yet.</p>
+      <p>Please set your personal staff password using the link below:</p>
+      <p><a href="{{setupUrl}}">Set your staff password</a></p>
+      <p>If the link does not open, copy and paste this URL into your browser:</p>
+      <p>{{setupUrl}}</p>
       <p class="meta">Onboarded at: {{happenedAtISO}}</p>
     </div>
   </div>

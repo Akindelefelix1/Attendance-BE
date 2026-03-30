@@ -280,8 +280,7 @@ export class AuthService {
       include: {
         organization: {
           select: {
-            id: true,
-            staffLoginPasswordHash: true
+            id: true
           }
         }
       },
@@ -294,13 +293,12 @@ export class AuthService {
 
     let matchedStaff: (typeof staffCandidates)[number] | null = null;
     for (const candidate of staffCandidates) {
-      const orgPasswordHash = candidate.organization.staffLoginPasswordHash;
-      if (!orgPasswordHash) {
+      if (!candidate.passwordHash) {
         continue;
       }
       let ok = false;
       try {
-        ok = await bcrypt.compare(normalized.password, orgPasswordHash);
+        ok = await bcrypt.compare(normalized.password, candidate.passwordHash);
       } catch {
         ok = false;
       }
@@ -445,15 +443,40 @@ export class AuthService {
 
   async requestStaffReset(email: string) {
     const staff = await this.prisma.staffMember.findFirst({
-      where: { email: email.trim().toLowerCase() }
+      where: { email: email.trim().toLowerCase() },
+      include: {
+        organization: {
+          select: { name: true }
+        }
+      }
     });
     if (!staff) return { ok: true };
     const token = crypto.randomUUID();
+    const resetTokenExp = new Date(Date.now() + 1000 * 60 * 30);
     await this.prisma.staffMember.update({
       where: { id: staff.id },
-      data: { resetToken: token, resetTokenExp: new Date(Date.now() + 1000 * 60 * 30) }
+      data: { resetToken: token, resetTokenExp }
     });
-    return { ok: true, token };
+
+    this.emailService
+      .sendStaffPasswordResetEmail({
+        organizationName: staff.organization.name,
+        staffEmail: staff.email,
+        staffName: staff.fullName,
+        resetToken: token,
+        reason: "A password reset was requested for your account."
+      })
+      .catch((error) => {
+        this.logger.error(
+          `[Background] Failed to send staff reset email to ${staff.email}.`,
+          error instanceof Error ? error.stack : String(error)
+        );
+      });
+
+    return {
+      ok: true,
+      ...(this.isDevMode() ? { token } : {})
+    };
   }
 
   async resetStaffPassword(token: string, password: string) {

@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { EmailService } from "../notifications/email.service";
+import * as crypto from "crypto";
 
 @Injectable()
 export class StaffService {
@@ -20,14 +21,20 @@ export class StaffService {
     organizationId: string,
     payload: { fullName: string; role: string; email: string }
   ) {
+    const setupToken = crypto.randomUUID();
+    const setupTokenExp = new Date(Date.now() + 1000 * 60 * 30);
+
     const created = await this.prisma.staffMember.create({
       data: {
         organization: { connect: { id: organizationId } },
         fullName: payload.fullName,
         role: payload.role,
         email: payload.email.trim().toLowerCase(),
-        isVerified: true,
+        isVerified: false,
         verifyToken: null,
+        resetToken: setupToken,
+        resetTokenExp: setupTokenExp,
+        passwordHash: null,
         permissions: ["manage_attendance"]
       }
     });
@@ -57,7 +64,8 @@ export class StaffService {
         .sendStaffOnboardingEmail({
           organizationName: organization.name,
           staffEmail: created.email,
-          staffName: created.fullName
+          staffName: created.fullName,
+          resetToken: setupToken
         })
         .catch(() => undefined);
     }

@@ -18,11 +18,14 @@ type StaffOnboardingPayload = {
     organizationName: string;
     staffEmail: string;
     staffName: string;
+    resetToken: string;
 };
-type StaffPasswordBroadcastPayload = {
+type StaffPasswordResetPayload = {
     organizationName: string;
-    staffEmails: string[];
-    staffLoginPassword: string;
+    staffEmail: string;
+    staffName: string;
+    resetToken: string;
+    reason?: string;
 };
 export declare class EmailService {
     private templateService;
@@ -32,6 +35,7 @@ export declare class EmailService {
     isDeliveryConfigured(): boolean;
     private getFrontendBaseUrl;
     private getAdminVerifyUrl;
+    private getStaffResetUrl;
     private resolveSmtpTarget;
     private getTransporter;
     private getFromAddress;
@@ -49,7 +53,7 @@ export declare class EmailService {
         attempted: number;
         delivered: number;
     }>;
-    sendStaffLoginPasswordUpdatedEmail(payload: StaffPasswordBroadcastPayload): Promise<{
+    sendStaffPasswordResetEmail(payload: StaffPasswordResetPayload): Promise<{
         attempted: number;
         delivered: number;
     }>;
