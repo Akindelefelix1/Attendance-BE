@@ -1,10 +1,13 @@
+import { TemplateService } from "./template.service";
 type AdminVerificationPayload = {
     email: string;
     token: string;
 };
 export declare class EmailService {
+    private templateService;
     private readonly logger;
     private transporter;
+    constructor(templateService: TemplateService);
     isDeliveryConfigured(): boolean;
     private getFrontendBaseUrl;
     private getAdminVerifyUrl;
@@ -12,8 +15,17 @@ export declare class EmailService {
     private getTransporter;
     private getFromAddress;
     private parseFromAddress;
+    private sendViaSendGrid;
     private sendViaBrevoApi;
-    sendAdminVerificationEmail(payload: AdminVerificationPayload): Promise<{
+    sendAdminVerificationEmail(payload: AdminVerificationPayload, userName?: string): Promise<{
+        readonly verifyUrl: string;
+        readonly delivered: true;
+        readonly provider: "sendgrid";
+    } | {
+        readonly verifyUrl: string;
+        readonly delivered: false;
+        readonly provider: "sendgrid";
+    } | {
         readonly verifyUrl: string;
         readonly delivered: false;
         readonly provider: "brevo-api";

@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
-import { readFileSync } from "fs";
-import { join } from "path";
+import { existsSync, readFileSync } from "fs";
+import { join, resolve } from "path";
 import Handlebars from "handlebars";
 
 type TemplateData = Record<string, any>;
@@ -9,11 +9,28 @@ type TemplateData = Record<string, any>;
 export class TemplateService {
   private templates: Map<string, Handlebars.TemplateDelegate> = new Map();
 
+  private resolveTemplatePath(templateName: string) {
+    const candidates = [
+      join(__dirname, "templates", templateName),
+      resolve(process.cwd(), "dist", "src", "notifications", "templates", templateName),
+      resolve(process.cwd(), "src", "notifications", "templates", templateName)
+    ];
+
+    const matched = candidates.find((candidate) => existsSync(candidate));
+    if (!matched) {
+      throw new Error(
+        `Template not found: ${templateName}. Checked: ${candidates.join(", ")}`
+      );
+    }
+
+    return matched;
+  }
+
   private loadTemplate(templateName: string): Handlebars.TemplateDelegate {
     const cached = this.templates.get(templateName);
     if (cached) return cached;
 
-    const templatePath = join(__dirname, "templates", templateName);
+    const templatePath = this.resolveTemplatePath(templateName);
     const source = readFileSync(templatePath, "utf-8");
     const template = Handlebars.compile(source);
 

@@ -20,7 +20,7 @@ export declare class DisposableAttendanceController {
         fields: {
             id: string;
             label: string;
-            type: "email" | "full-name" | "phone" | "occupation" | "address" | "text";
+            type: "email" | "text" | "full-name" | "phone" | "occupation" | "address";
             required: boolean;
         }[];
         isRecurring: boolean;
@@ -63,7 +63,7 @@ export declare class DisposableAttendanceController {
         fields: {
             id: string;
             label: string;
-            type: "email" | "full-name" | "phone" | "occupation" | "address" | "text";
+            type: "email" | "text" | "full-name" | "phone" | "occupation" | "address";
             required: boolean;
         }[];
         isRecurring: boolean;
@@ -107,7 +107,7 @@ export declare class DisposableAttendanceController {
         fields: {
             id: string;
             label: string;
-            type: "email" | "full-name" | "phone" | "occupation" | "address" | "text";
+            type: "email" | "text" | "full-name" | "phone" | "occupation" | "address";
             required: boolean;
         }[];
         isRecurring: boolean;
@@ -182,7 +182,7 @@ export declare class DisposableAttendanceController {
         fields: {
             id: string;
             label: string;
-            type: "email" | "full-name" | "phone" | "occupation" | "address" | "text";
+            type: "email" | "text" | "full-name" | "phone" | "occupation" | "address";
             required: boolean;
         }[];
         isRecurring: boolean;
@@ -225,7 +225,7 @@ export declare class DisposableAttendanceController {
         fields: {
             id: string;
             label: string;
-            type: "email" | "full-name" | "phone" | "occupation" | "address" | "text";
+            type: "email" | "text" | "full-name" | "phone" | "occupation" | "address";
             required: boolean;
         }[];
         isArchived: boolean;
