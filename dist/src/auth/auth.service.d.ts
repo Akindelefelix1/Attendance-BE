@@ -68,6 +68,13 @@ export declare class AuthService {
         token?: `${string}-${string}-${string}-${string}-${string}` | undefined;
         ok: boolean;
     }>;
+    requestAdminReset(email: string): Promise<{
+        token?: `${string}-${string}-${string}-${string}-${string}` | undefined;
+        ok: boolean;
+    }>;
+    resetAdminPassword(token: string, password: string): Promise<{
+        ok: boolean;
+    }>;
     resetStaffPassword(token: string, password: string): Promise<{
         ok: boolean;
     }>;

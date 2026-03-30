@@ -110,7 +110,7 @@ let AuthService = AuthService_1 = class AuthService {
         const normalizedEmail = email?.trim().toLowerCase();
         const normalizedPassword = password?.toString();
         if (!normalizedEmail || !normalizedPassword) {
-            throw new common_1.UnauthorizedException("Invalid credentials");
+            throw new common_1.UnauthorizedException("Incorrect email or password");
         }
         return {
             email: normalizedEmail,
@@ -211,7 +211,7 @@ let AuthService = AuthService_1 = class AuthService {
             orderBy: { createdAt: "desc" }
         });
         if (admins.length === 0) {
-            throw new common_1.UnauthorizedException("Invalid credentials");
+            throw new common_1.UnauthorizedException("Incorrect email or password");
         }
         let matchedAdmin = null;
         for (const admin of admins) {
@@ -228,7 +228,7 @@ let AuthService = AuthService_1 = class AuthService {
             }
         }
         if (!matchedAdmin) {
-            throw new common_1.UnauthorizedException("Invalid credentials");
+            throw new common_1.UnauthorizedException("Incorrect email or password");
         }
         if (!matchedAdmin.isVerified) {
             if (!this.isAdminEmailVerificationRequired() ||
@@ -286,7 +286,7 @@ let AuthService = AuthService_1 = class AuthService {
             orderBy: { createdAt: "desc" }
         });
         if (staffCandidates.length === 0) {
-            throw new common_1.UnauthorizedException("Invalid credentials");
+            throw new common_1.UnauthorizedException("Incorrect email or password");
         }
         let matchedStaff = null;
         for (const candidate of staffCandidates) {
@@ -306,7 +306,7 @@ let AuthService = AuthService_1 = class AuthService {
             }
         }
         if (!matchedStaff) {
-            throw new common_1.UnauthorizedException("Invalid credentials");
+            throw new common_1.UnauthorizedException("Incorrect email or password");
         }
         const token = this.jwtService.sign({
             sub: matchedStaff.id,
@@ -451,6 +451,56 @@ let AuthService = AuthService_1 = class AuthService {
             ok: true,
             ...(this.isDevMode() ? { token } : {})
         };
+    }
+    async requestAdminReset(email) {
+        const normalizedEmail = email.trim().toLowerCase();
+        const admin = await this.prisma.adminUser.findFirst({
+            where: { email: normalizedEmail },
+            orderBy: { createdAt: "desc" }
+        });
+        if (!admin) {
+            return { ok: true };
+        }
+        const token = crypto.randomUUID();
+        const verifyTokenExp = new Date(Date.now() + 1000 * 60 * 30);
+        await this.prisma.adminUser.update({
+            where: { id: admin.id },
+            data: {
+                verifyToken: token,
+                verifyTokenExp
+            }
+        });
+        this.emailService
+            .sendAdminPasswordResetEmail({
+            email: admin.email,
+            token
+        })
+            .catch((error) => {
+            this.logger.error(`[Background] Failed to send admin reset email to ${admin.email}.`, error instanceof Error ? error.stack : String(error));
+        });
+        return {
+            ok: true,
+            ...(this.isDevMode() ? { token } : {})
+        };
+    }
+    async resetAdminPassword(token, password) {
+        const admin = await this.prisma.adminUser.findFirst({
+            where: { verifyToken: token }
+        });
+        if (!admin || !admin.verifyTokenExp || admin.verifyTokenExp < new Date()) {
+            throw new common_1.UnauthorizedException("Invalid or expired token");
+        }
+        const passwordHash = await bcrypt.hash(password, 10);
+        await this.prisma.adminUser.update({
+            where: { id: admin.id },
+            data: {
+                passwordHash,
+                verifyToken: null,
+                verifyTokenExp: null,
+                isVerified: true
+            }
+        });
+        return { ok: true };
     }
     async resetStaffPassword(token, password) {
         const staff = await this.prisma.staffMember.findFirst({

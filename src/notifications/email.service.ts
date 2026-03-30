@@ -10,6 +10,11 @@ type AdminVerificationPayload = {
   token: string;
 };
 
+type AdminPasswordResetPayload = {
+  email: string;
+  token: string;
+};
+
 type OrganizationActivityPayload = {
   organizationName: string;
   adminEmails: string[];
@@ -90,6 +95,10 @@ export class EmailService {
 
   private getAdminVerifyUrl(token: string) {
     return `${this.getFrontendBaseUrl()}/#/verify-email?token=${encodeURIComponent(token)}`;
+  }
+
+  private getAdminResetUrl(token: string) {
+    return `${this.getFrontendBaseUrl()}/#/admin-reset-password?token=${encodeURIComponent(token)}`;
   }
 
   private getStaffResetUrl(token: string) {
@@ -654,5 +663,31 @@ export class EmailService {
     }
 
     return { verifyUrl, delivered: true, provider: "smtp" };
+  }
+
+  async sendAdminPasswordResetEmail(payload: AdminPasswordResetPayload) {
+    const resetUrl = this.getAdminResetUrl(payload.token);
+    const subject = "Reset your Attendance admin password";
+    const htmlContent = this.templateService.renderTemplate("admin-password-reset.html", {
+      resetUrl,
+      happenedAtISO: new Date().toISOString()
+    });
+    const textContent = this.templateService.renderTemplate("admin-password-reset.txt", {
+      resetUrl,
+      happenedAtISO: new Date().toISOString()
+    });
+
+    const delivery = await this.sendGenericEmail(
+      payload.email,
+      subject,
+      htmlContent,
+      textContent
+    );
+
+    return {
+      resetUrl,
+      delivered: delivery.delivered,
+      provider: delivery.provider
+    };
   }
 }

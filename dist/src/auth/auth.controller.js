@@ -42,6 +42,12 @@ let AuthController = class AuthController {
     reset(body) {
         return this.authService.resetStaffPassword(body.token, body.password);
     }
+    requestAdminReset(body) {
+        return this.authService.requestAdminReset(body.email);
+    }
+    resetAdmin(body) {
+        return this.authService.resetAdminPassword(body.token, body.password);
+    }
     async register(body, res) {
         const result = await this.authService.registerAdmin(body.orgId, body.email, body.password, res);
         return result;
@@ -121,6 +127,25 @@ __decorate([
     __metadata("design:paramtypes", [auth_dto_1.ResetPasswordDto]),
     __metadata("design:returntype", void 0)
 ], AuthController.prototype, "reset", null);
+__decorate([
+    (0, common_1.Post)("admin/request-reset"),
+    (0, swagger_1.ApiOperation)({ summary: "Request admin password reset token" }),
+    (0, swagger_1.ApiOkResponse)({ description: "Password reset request accepted" }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [auth_dto_1.RequestEmailDto]),
+    __metadata("design:returntype", void 0)
+], AuthController.prototype, "requestAdminReset", null);
+__decorate([
+    (0, common_1.Post)("admin/reset"),
+    (0, swagger_1.ApiOperation)({ summary: "Reset admin password" }),
+    (0, swagger_1.ApiOkResponse)({ description: "Admin password reset successful" }),
+    (0, swagger_1.ApiUnauthorizedResponse)({ description: "Invalid or expired token" }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [auth_dto_1.ResetPasswordDto]),
+    __metadata("design:returntype", void 0)
+], AuthController.prototype, "resetAdmin", null);
 __decorate([
     (0, common_1.Post)("register"),
     (0, swagger_1.ApiOperation)({ summary: "Register organization admin" }),

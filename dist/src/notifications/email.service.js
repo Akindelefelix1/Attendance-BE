@@ -59,6 +59,9 @@ let EmailService = EmailService_1 = class EmailService {
     getAdminVerifyUrl(token) {
         return `${this.getFrontendBaseUrl()}/#/verify-email?token=${encodeURIComponent(token)}`;
     }
+    getAdminResetUrl(token) {
+        return `${this.getFrontendBaseUrl()}/#/admin-reset-password?token=${encodeURIComponent(token)}`;
+    }
     getStaffResetUrl(token) {
         return `${this.getFrontendBaseUrl()}/#/staff-reset-password?token=${encodeURIComponent(token)}`;
     }
@@ -453,6 +456,24 @@ let EmailService = EmailService_1 = class EmailService {
             return { verifyUrl, delivered: false, provider: "smtp" };
         }
         return { verifyUrl, delivered: true, provider: "smtp" };
+    }
+    async sendAdminPasswordResetEmail(payload) {
+        const resetUrl = this.getAdminResetUrl(payload.token);
+        const subject = "Reset your Attendance admin password";
+        const htmlContent = this.templateService.renderTemplate("admin-password-reset.html", {
+            resetUrl,
+            happenedAtISO: new Date().toISOString()
+        });
+        const textContent = this.templateService.renderTemplate("admin-password-reset.txt", {
+            resetUrl,
+            happenedAtISO: new Date().toISOString()
+        });
+        const delivery = await this.sendGenericEmail(payload.email, subject, htmlContent, textContent);
+        return {
+            resetUrl,
+            delivered: delivery.delivered,
+            provider: delivery.provider
+        };
     }
 };
 exports.EmailService = EmailService;

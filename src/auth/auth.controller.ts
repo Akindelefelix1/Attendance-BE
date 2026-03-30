@@ -78,6 +78,21 @@ export class AuthController {
     return this.authService.resetStaffPassword(body.token, body.password);
   }
 
+  @Post("admin/request-reset")
+  @ApiOperation({ summary: "Request admin password reset token" })
+  @ApiOkResponse({ description: "Password reset request accepted" })
+  requestAdminReset(@Body() body: RequestEmailDto) {
+    return this.authService.requestAdminReset(body.email);
+  }
+
+  @Post("admin/reset")
+  @ApiOperation({ summary: "Reset admin password" })
+  @ApiOkResponse({ description: "Admin password reset successful" })
+  @ApiUnauthorizedResponse({ description: "Invalid or expired token" })
+  resetAdmin(@Body() body: ResetPasswordDto) {
+    return this.authService.resetAdminPassword(body.token, body.password);
+  }
+
   @Post("register")
   @ApiOperation({ summary: "Register organization admin" })
   @ApiOkResponse({ description: "Admin registered successfully" })

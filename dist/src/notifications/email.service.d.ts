@@ -3,6 +3,10 @@ type AdminVerificationPayload = {
     email: string;
     token: string;
 };
+type AdminPasswordResetPayload = {
+    email: string;
+    token: string;
+};
 type OrganizationActivityPayload = {
     organizationName: string;
     adminEmails: string[];
@@ -35,6 +39,7 @@ export declare class EmailService {
     isDeliveryConfigured(): boolean;
     private getFrontendBaseUrl;
     private getAdminVerifyUrl;
+    private getAdminResetUrl;
     private getStaffResetUrl;
     private resolveSmtpTarget;
     private getTransporter;
@@ -71,6 +76,11 @@ export declare class EmailService {
         verifyUrl: string;
         delivered: boolean;
         provider: string;
+    }>;
+    sendAdminPasswordResetEmail(payload: AdminPasswordResetPayload): Promise<{
+        resetUrl: string;
+        delivered: boolean;
+        provider: "sendgrid" | "brevo-api" | "smtp" | "none";
     }>;
 }
 export {};

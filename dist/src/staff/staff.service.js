@@ -47,6 +47,7 @@ const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const email_service_1 = require("../notifications/email.service");
 const crypto = __importStar(require("crypto"));
+const client_1 = require("@prisma/client");
 let StaffService = class StaffService {
     prisma;
     emailService;
@@ -63,20 +64,30 @@ let StaffService = class StaffService {
     async create(organizationId, payload) {
         const setupToken = crypto.randomUUID();
         const setupTokenExp = new Date(Date.now() + 1000 * 60 * 30);
-        const created = await this.prisma.staffMember.create({
-            data: {
-                organization: { connect: { id: organizationId } },
-                fullName: payload.fullName,
-                role: payload.role,
-                email: payload.email.trim().toLowerCase(),
-                isVerified: false,
-                verifyToken: null,
-                resetToken: setupToken,
-                resetTokenExp: setupTokenExp,
-                passwordHash: null,
-                permissions: ["manage_attendance"]
+        let created;
+        try {
+            created = await this.prisma.staffMember.create({
+                data: {
+                    organization: { connect: { id: organizationId } },
+                    fullName: payload.fullName,
+                    role: payload.role,
+                    email: payload.email.trim().toLowerCase(),
+                    isVerified: false,
+                    verifyToken: null,
+                    resetToken: setupToken,
+                    resetTokenExp: setupTokenExp,
+                    passwordHash: null,
+                    permissions: ["manage_attendance"]
+                }
+            });
+        }
+        catch (error) {
+            if (error instanceof client_1.Prisma.PrismaClientKnownRequestError &&
+                error.code === "P2002") {
+                throw new common_1.ConflictException("This staff email has already been added for this organization.");
             }
-        });
+            throw error;
+        }
         const organization = await this.prisma.organization.findUnique({
             where: { id: organizationId },
             select: { name: true, adminEmails: true }
@@ -108,18 +119,28 @@ let StaffService = class StaffService {
         return created;
     }
     async update(id, payload) {
-        const updated = await this.prisma.staffMember.update({
-            where: { id },
-            data: {
-                ...payload,
-                email: payload.email?.trim().toLowerCase()
-            },
-            include: {
-                organization: {
-                    select: { name: true, adminEmails: true }
+        let updated;
+        try {
+            updated = await this.prisma.staffMember.update({
+                where: { id },
+                data: {
+                    ...payload,
+                    email: payload.email?.trim().toLowerCase()
+                },
+                include: {
+                    organization: {
+                        select: { name: true, adminEmails: true }
+                    }
                 }
+            });
+        }
+        catch (error) {
+            if (error instanceof client_1.Prisma.PrismaClientKnownRequestError &&
+                error.code === "P2002") {
+                throw new common_1.ConflictException("This staff email has already been added for this organization.");
             }
-        });
+            throw error;
+        }
         void this.emailService
             .sendOrganizationActivityEmail({
             organizationName: updated.organization.name,
@@ -138,18 +159,28 @@ let StaffService = class StaffService {
         return result;
     }
     async updateInOrg(id, organizationId, payload) {
-        const updated = await this.prisma.staffMember.update({
-            where: { id, organizationId },
-            data: {
-                ...payload,
-                email: payload.email?.trim().toLowerCase()
-            },
-            include: {
-                organization: {
-                    select: { name: true, adminEmails: true }
+        let updated;
+        try {
+            updated = await this.prisma.staffMember.update({
+                where: { id, organizationId },
+                data: {
+                    ...payload,
+                    email: payload.email?.trim().toLowerCase()
+                },
+                include: {
+                    organization: {
+                        select: { name: true, adminEmails: true }
+                    }
                 }
+            });
+        }
+        catch (error) {
+            if (error instanceof client_1.Prisma.PrismaClientKnownRequestError &&
+                error.code === "P2002") {
+                throw new common_1.ConflictException("This staff email has already been added for this organization.");
             }
-        });
+            throw error;
+        }
         void this.emailService
             .sendOrganizationActivityEmail({
             organizationName: updated.organization.name,

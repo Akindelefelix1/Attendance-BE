@@ -78,7 +78,7 @@ export class AuthService {
     const normalizedPassword = password?.toString();
 
     if (!normalizedEmail || !normalizedPassword) {
-      throw new UnauthorizedException("Invalid credentials");
+      throw new UnauthorizedException("Incorrect email or password");
     }
 
     return {
@@ -201,7 +201,7 @@ export class AuthService {
       orderBy: { createdAt: "desc" }
     });
     if (admins.length === 0) {
-      throw new UnauthorizedException("Invalid credentials");
+      throw new UnauthorizedException("Incorrect email or password");
     }
 
     let matchedAdmin: (typeof admins)[number] | null = null;
@@ -219,7 +219,7 @@ export class AuthService {
     }
 
     if (!matchedAdmin) {
-      throw new UnauthorizedException("Invalid credentials");
+      throw new UnauthorizedException("Incorrect email or password");
     }
 
     if (!matchedAdmin.isVerified) {
@@ -288,7 +288,7 @@ export class AuthService {
     });
 
     if (staffCandidates.length === 0) {
-      throw new UnauthorizedException("Invalid credentials");
+      throw new UnauthorizedException("Incorrect email or password");
     }
 
     let matchedStaff: (typeof staffCandidates)[number] | null = null;
@@ -309,7 +309,7 @@ export class AuthService {
     }
 
     if (!matchedStaff) {
-      throw new UnauthorizedException("Invalid credentials");
+      throw new UnauthorizedException("Incorrect email or password");
     }
 
     const token = this.jwtService.sign({
@@ -477,6 +477,69 @@ export class AuthService {
       ok: true,
       ...(this.isDevMode() ? { token } : {})
     };
+  }
+
+  async requestAdminReset(email: string) {
+    const normalizedEmail = email.trim().toLowerCase();
+    const admin = await this.prisma.adminUser.findFirst({
+      where: { email: normalizedEmail },
+      orderBy: { createdAt: "desc" }
+    });
+
+    if (!admin) {
+      return { ok: true };
+    }
+
+    const token = crypto.randomUUID();
+    const verifyTokenExp = new Date(Date.now() + 1000 * 60 * 30);
+
+    await this.prisma.adminUser.update({
+      where: { id: admin.id },
+      data: {
+        verifyToken: token,
+        verifyTokenExp
+      }
+    });
+
+    this.emailService
+      .sendAdminPasswordResetEmail({
+        email: admin.email,
+        token
+      })
+      .catch((error) => {
+        this.logger.error(
+          `[Background] Failed to send admin reset email to ${admin.email}.`,
+          error instanceof Error ? error.stack : String(error)
+        );
+      });
+
+    return {
+      ok: true,
+      ...(this.isDevMode() ? { token } : {})
+    };
+  }
+
+  async resetAdminPassword(token: string, password: string) {
+    const admin = await this.prisma.adminUser.findFirst({
+      where: { verifyToken: token }
+    });
+
+    if (!admin || !admin.verifyTokenExp || admin.verifyTokenExp < new Date()) {
+      throw new UnauthorizedException("Invalid or expired token");
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    await this.prisma.adminUser.update({
+      where: { id: admin.id },
+      data: {
+        passwordHash,
+        verifyToken: null,
+        verifyTokenExp: null,
+        isVerified: true
+      }
+    });
+
+    return { ok: true };
   }
 
   async resetStaffPassword(token: string, password: string) {

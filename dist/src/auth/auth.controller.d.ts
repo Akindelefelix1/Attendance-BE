@@ -35,6 +35,13 @@ export declare class AuthController {
     reset(body: ResetPasswordDto): Promise<{
         ok: boolean;
     }>;
+    requestAdminReset(body: RequestEmailDto): Promise<{
+        token?: `${string}-${string}-${string}-${string}-${string}` | undefined;
+        ok: boolean;
+    }>;
+    resetAdmin(body: ResetPasswordDto): Promise<{
+        ok: boolean;
+    }>;
     register(body: RegisterAdminDto, res: Response): Promise<{
         verificationToken?: `${string}-${string}-${string}-${string}-${string}` | undefined;
         admin: {
