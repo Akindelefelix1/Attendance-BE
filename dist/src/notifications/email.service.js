@@ -129,6 +129,160 @@ let EmailService = EmailService_1 = class EmailService {
             email: matched[2].trim()
         };
     }
+    normalizeEmails(emails) {
+        return Array.from(new Set(emails
+            .map((email) => email.trim().toLowerCase())
+            .filter((email) => email.length > 3 && email.includes("@"))));
+    }
+    async sendGenericViaSendGrid(to, subject, html, text) {
+        const apiKey = process.env.SENDGRID_API_KEY?.trim();
+        if (!apiKey) {
+            return null;
+        }
+        try {
+            const from = this.parseFromAddress();
+            await mail_1.default.send({
+                to,
+                from: {
+                    email: from.email,
+                    name: from.name
+                },
+                subject,
+                text,
+                html,
+                replyTo: from.email
+            });
+            return { delivered: true, provider: "sendgrid" };
+        }
+        catch (error) {
+            const sendGridStatus = typeof error === "object" && error !== null && "code" in error
+                ? String(error.code ?? "")
+                : "";
+            const sendGridBody = typeof error === "object" &&
+                error !== null &&
+                "response" in error &&
+                error.response?.body
+                ? JSON.stringify(error.response.body)
+                : "";
+            this.logger.error(`SendGrid generic email send failed for ${to}. ${sendGridStatus ? `Code: ${sendGridStatus}.` : ""} ${sendGridBody ? `Response: ${sendGridBody}` : ""}`, error instanceof Error ? error.stack : String(error));
+            return { delivered: false, provider: "sendgrid" };
+        }
+    }
+    async sendGenericViaBrevoApi(to, subject, html, text) {
+        const apiKey = process.env.BREVO_API_KEY?.trim();
+        if (!apiKey) {
+            return null;
+        }
+        const from = this.parseFromAddress();
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+        try {
+            const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "api-key": apiKey
+                },
+                body: JSON.stringify({
+                    sender: {
+                        name: from.name,
+                        email: from.email
+                    },
+                    to: [{ email: to }],
+                    subject,
+                    textContent: text,
+                    htmlContent: html
+                }),
+                signal: controller.signal
+            });
+            if (!response.ok) {
+                const body = await response.text();
+                this.logger.error(`Brevo API generic email send failed with status ${response.status}: ${body}`);
+                return { delivered: false, provider: "brevo-api" };
+            }
+            return { delivered: true, provider: "brevo-api" };
+        }
+        catch (error) {
+            this.logger.error(`Brevo API generic email send failed for ${to}.`, error instanceof Error ? error.stack : String(error));
+            return { delivered: false, provider: "brevo-api" };
+        }
+        finally {
+            clearTimeout(timeout);
+        }
+    }
+    async sendGenericViaSmtp(to, subject, html, text) {
+        const transporter = await this.getTransporter();
+        if (!transporter) {
+            return null;
+        }
+        try {
+            await transporter.sendMail({
+                from: this.getFromAddress(),
+                to,
+                subject,
+                text,
+                html
+            });
+            return { delivered: true, provider: "smtp" };
+        }
+        catch (error) {
+            this.logger.error(`SMTP generic email send failed for ${to}.`, error instanceof Error ? error.stack : String(error));
+            return { delivered: false, provider: "smtp" };
+        }
+    }
+    async sendGenericEmail(to, subject, html, text) {
+        const sendGridResult = await this.sendGenericViaSendGrid(to, subject, html, text);
+        if (sendGridResult?.delivered) {
+            return sendGridResult;
+        }
+        const brevoResult = await this.sendGenericViaBrevoApi(to, subject, html, text);
+        if (brevoResult?.delivered) {
+            return brevoResult;
+        }
+        const smtpResult = await this.sendGenericViaSmtp(to, subject, html, text);
+        if (smtpResult) {
+            return smtpResult;
+        }
+        return { delivered: false, provider: "none" };
+    }
+    async sendOrganizationActivityEmail(payload) {
+        const recipients = this.normalizeEmails(payload.adminEmails);
+        if (recipients.length === 0) {
+            this.logger.log(`No admin recipients configured for organization activity: ${payload.organizationName}`);
+            return { attempted: 0, delivered: 0 };
+        }
+        const details = payload.details ?? [];
+        const detailsText = details.length === 0
+            ? "- No additional details"
+            : details.map((item) => `- ${item.label}: ${item.value}`).join("\n");
+        const subject = `[Attendance] ${payload.activityType} - ${payload.organizationName}`;
+        const results = await Promise.all(recipients.map(async (to) => {
+            const htmlContent = this.templateService.renderTemplate("organization-activity.html", {
+                organizationName: payload.organizationName,
+                activityType: payload.activityType,
+                summary: payload.summary,
+                actor: payload.actor || "System",
+                details,
+                happenedAtISO: new Date().toISOString()
+            });
+            const textContent = this.templateService.renderTemplate("organization-activity.txt", {
+                organizationName: payload.organizationName,
+                activityType: payload.activityType,
+                summary: payload.summary,
+                actor: payload.actor || "System",
+                detailsText,
+                happenedAtISO: new Date().toISOString()
+            });
+            const delivery = await this.sendGenericEmail(to, subject, htmlContent, textContent);
+            return delivery.delivered;
+        }));
+        const delivered = results.filter(Boolean).length;
+        this.logger.log(`Organization activity notifications sent: ${delivered}/${recipients.length} delivered for ${payload.organizationName}`);
+        return {
+            attempted: recipients.length,
+            delivered
+        };
+    }
     async sendViaSendGrid(payload, verifyUrl, userName) {
         const apiKey = process.env.SENDGRID_API_KEY?.trim();
         if (!apiKey) {

@@ -10,11 +10,13 @@ exports.DisposableAttendanceModule = void 0;
 const common_1 = require("@nestjs/common");
 const disposable_attendance_controller_1 = require("./disposable-attendance.controller");
 const disposable_attendance_service_1 = require("./disposable-attendance.service");
+const notifications_module_1 = require("../notifications/notifications.module");
 let DisposableAttendanceModule = class DisposableAttendanceModule {
 };
 exports.DisposableAttendanceModule = DisposableAttendanceModule;
 exports.DisposableAttendanceModule = DisposableAttendanceModule = __decorate([
     (0, common_1.Module)({
+        imports: [notifications_module_1.NotificationsModule],
         controllers: [disposable_attendance_controller_1.DisposableAttendanceController],
         providers: [disposable_attendance_service_1.DisposableAttendanceService]
     })

@@ -10,6 +10,15 @@ type AdminVerificationPayload = {
   token: string;
 };
 
+type OrganizationActivityPayload = {
+  organizationName: string;
+  adminEmails: string[];
+  activityType: string;
+  summary: string;
+  actor?: string;
+  details?: Array<{ label: string; value: string }>;
+};
+
 type EmailDeliveryResult = {
   verifyUrl: string;
   delivered: boolean;
@@ -150,6 +159,229 @@ export class EmailService {
     return {
       name: matched[1].trim().replace(/^"|"$/g, "") || "Attendance",
       email: matched[2].trim()
+    };
+  }
+
+  private normalizeEmails(emails: string[]) {
+    return Array.from(
+      new Set(
+        emails
+          .map((email) => email.trim().toLowerCase())
+          .filter((email) => email.length > 3 && email.includes("@"))
+      )
+    );
+  }
+
+  private async sendGenericViaSendGrid(
+    to: string,
+    subject: string,
+    html: string,
+    text: string
+  ) {
+    const apiKey = process.env.SENDGRID_API_KEY?.trim();
+    if (!apiKey) {
+      return null;
+    }
+
+    try {
+      const from = this.parseFromAddress();
+      await sgMail.send({
+        to,
+        from: {
+          email: from.email,
+          name: from.name
+        },
+        subject,
+        text,
+        html,
+        replyTo: from.email
+      });
+
+      return { delivered: true, provider: "sendgrid" } as const;
+    } catch (error) {
+      const sendGridStatus =
+        typeof error === "object" && error !== null && "code" in error
+          ? String((error as { code?: unknown }).code ?? "")
+          : "";
+      const sendGridBody =
+        typeof error === "object" &&
+        error !== null &&
+        "response" in error &&
+        (error as { response?: { body?: unknown } }).response?.body
+          ? JSON.stringify((error as { response: { body: unknown } }).response.body)
+          : "";
+
+      this.logger.error(
+        `SendGrid generic email send failed for ${to}. ${sendGridStatus ? `Code: ${sendGridStatus}.` : ""} ${sendGridBody ? `Response: ${sendGridBody}` : ""}`,
+        error instanceof Error ? error.stack : String(error)
+      );
+      return { delivered: false, provider: "sendgrid" } as const;
+    }
+  }
+
+  private async sendGenericViaBrevoApi(
+    to: string,
+    subject: string,
+    html: string,
+    text: string
+  ) {
+    const apiKey = process.env.BREVO_API_KEY?.trim();
+    if (!apiKey) {
+      return null;
+    }
+
+    const from = this.parseFromAddress();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
+    try {
+      const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "api-key": apiKey
+        },
+        body: JSON.stringify({
+          sender: {
+            name: from.name,
+            email: from.email
+          },
+          to: [{ email: to }],
+          subject,
+          textContent: text,
+          htmlContent: html
+        }),
+        signal: controller.signal
+      });
+
+      if (!response.ok) {
+        const body = await response.text();
+        this.logger.error(
+          `Brevo API generic email send failed with status ${response.status}: ${body}`
+        );
+        return { delivered: false, provider: "brevo-api" } as const;
+      }
+
+      return { delivered: true, provider: "brevo-api" } as const;
+    } catch (error) {
+      this.logger.error(
+        `Brevo API generic email send failed for ${to}.`,
+        error instanceof Error ? error.stack : String(error)
+      );
+      return { delivered: false, provider: "brevo-api" } as const;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  private async sendGenericViaSmtp(
+    to: string,
+    subject: string,
+    html: string,
+    text: string
+  ) {
+    const transporter = await this.getTransporter();
+    if (!transporter) {
+      return null;
+    }
+
+    try {
+      await transporter.sendMail({
+        from: this.getFromAddress(),
+        to,
+        subject,
+        text,
+        html
+      });
+      return { delivered: true, provider: "smtp" } as const;
+    } catch (error) {
+      this.logger.error(
+        `SMTP generic email send failed for ${to}.`,
+        error instanceof Error ? error.stack : String(error)
+      );
+      return { delivered: false, provider: "smtp" } as const;
+    }
+  }
+
+  private async sendGenericEmail(
+    to: string,
+    subject: string,
+    html: string,
+    text: string
+  ) {
+    const sendGridResult = await this.sendGenericViaSendGrid(to, subject, html, text);
+    if (sendGridResult?.delivered) {
+      return sendGridResult;
+    }
+
+    const brevoResult = await this.sendGenericViaBrevoApi(to, subject, html, text);
+    if (brevoResult?.delivered) {
+      return brevoResult;
+    }
+
+    const smtpResult = await this.sendGenericViaSmtp(to, subject, html, text);
+    if (smtpResult) {
+      return smtpResult;
+    }
+
+    return { delivered: false, provider: "none" } as const;
+  }
+
+  async sendOrganizationActivityEmail(payload: OrganizationActivityPayload) {
+    const recipients = this.normalizeEmails(payload.adminEmails);
+    if (recipients.length === 0) {
+      this.logger.log(
+        `No admin recipients configured for organization activity: ${payload.organizationName}`
+      );
+      return { attempted: 0, delivered: 0 };
+    }
+
+    const details = payload.details ?? [];
+    const detailsText =
+      details.length === 0
+        ? "- No additional details"
+        : details.map((item) => `- ${item.label}: ${item.value}`).join("\n");
+    const subject = `[Attendance] ${payload.activityType} - ${payload.organizationName}`;
+
+    const results = await Promise.all(
+      recipients.map(async (to) => {
+        const htmlContent = this.templateService.renderTemplate(
+          "organization-activity.html",
+          {
+            organizationName: payload.organizationName,
+            activityType: payload.activityType,
+            summary: payload.summary,
+            actor: payload.actor || "System",
+            details,
+            happenedAtISO: new Date().toISOString()
+          }
+        );
+
+        const textContent = this.templateService.renderTemplate(
+          "organization-activity.txt",
+          {
+            organizationName: payload.organizationName,
+            activityType: payload.activityType,
+            summary: payload.summary,
+            actor: payload.actor || "System",
+            detailsText,
+            happenedAtISO: new Date().toISOString()
+          }
+        );
+
+        const delivery = await this.sendGenericEmail(to, subject, htmlContent, textContent);
+        return delivery.delivered;
+      })
+    );
+
+    const delivered = results.filter(Boolean).length;
+    this.logger.log(
+      `Organization activity notifications sent: ${delivered}/${recipients.length} delivered for ${payload.organizationName}`
+    );
+
+    return {
+      attempted: recipients.length,
+      delivered
     };
   }
 

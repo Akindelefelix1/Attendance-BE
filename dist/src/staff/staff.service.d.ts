@@ -1,7 +1,9 @@
 import { PrismaService } from "../prisma/prisma.service";
+import { EmailService } from "../notifications/email.service";
 export declare class StaffService {
     private readonly prisma;
-    constructor(prisma: PrismaService);
+    private readonly emailService;
+    constructor(prisma: PrismaService, emailService: EmailService);
     listByOrganization(organizationId: string): import("@prisma/client").Prisma.PrismaPromise<{
         id: string;
         createdAt: Date;
@@ -22,7 +24,7 @@ export declare class StaffService {
         fullName: string;
         role: string;
         email: string;
-    }): import("@prisma/client").Prisma.Prisma__StaffMemberClient<{
+    }): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -37,7 +39,7 @@ export declare class StaffService {
         resetTokenExp: Date | null;
         appRole: import("@prisma/client").$Enums.AppRole;
         permissions: import("@prisma/client").$Enums.Permission[];
-    }, never, import("@prisma/client/runtime/client").DefaultArgs, import("@prisma/client").Prisma.PrismaClientOptions>;
+    }>;
     update(id: string, payload: {
         fullName?: string;
         role?: string;

@@ -12,10 +12,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.OrganizationsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
+const email_service_1 = require("../notifications/email.service");
 let OrganizationsService = class OrganizationsService {
     prisma;
-    constructor(prisma) {
+    emailService;
+    constructor(prisma, emailService) {
         this.prisma = prisma;
+        this.emailService = emailService;
     }
     findAll() {
         return this.prisma.organization.findMany({
@@ -35,8 +38,22 @@ let OrganizationsService = class OrganizationsService {
             include: { staff: true }
         });
     }
-    create(data) {
-        return this.prisma.organization.create({ data });
+    async create(data) {
+        const created = await this.prisma.organization.create({ data });
+        void this.emailService
+            .sendOrganizationActivityEmail({
+            organizationName: created.name,
+            adminEmails: created.adminEmails,
+            activityType: "Organization Created",
+            summary: `A new organization (${created.name}) was created in Attendance.`,
+            details: [
+                { label: "Location", value: created.location },
+                { label: "Plan Tier", value: created.planTier },
+                { label: "Organization ID", value: created.id }
+            ]
+        })
+            .catch(() => undefined);
+        return created;
     }
     update(id, data) {
         return this.prisma.organization.update({ where: { id }, data });
@@ -48,6 +65,7 @@ let OrganizationsService = class OrganizationsService {
 exports.OrganizationsService = OrganizationsService;
 exports.OrganizationsService = OrganizationsService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        email_service_1.EmailService])
 ], OrganizationsService);
 //# sourceMappingURL=organizations.service.js.map

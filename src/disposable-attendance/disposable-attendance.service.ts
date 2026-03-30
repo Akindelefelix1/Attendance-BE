@@ -6,6 +6,7 @@ import {
 import type { DisposableRecurrenceMode, Prisma } from "@prisma/client";
 import { randomBytes } from "crypto";
 import { PrismaService } from "../prisma/prisma.service";
+import { EmailService } from "../notifications/email.service";
 
 type DisposableFieldType =
   | "full-name"
@@ -62,7 +63,10 @@ const FIELD_TYPES = new Set<DisposableFieldType>([
 
 @Injectable()
 export class DisposableAttendanceService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailService: EmailService
+  ) {}
 
   private getTierLimit(tier: "free" | "plus" | "pro") {
     if (tier === "pro") return 25;
@@ -198,7 +202,7 @@ export class DisposableAttendanceService {
 
     const organization = await this.prisma.organization.findUnique({
       where: { id: payload.orgId },
-      select: { id: true, planTier: true }
+      select: { id: true, name: true, planTier: true, adminEmails: true }
     });
 
     if (!organization) {
@@ -235,6 +239,24 @@ export class DisposableAttendanceService {
             : ""
       }
     });
+
+    void this.emailService
+      .sendOrganizationActivityEmail({
+        organizationName: organization.name,
+        adminEmails: organization.adminEmails,
+        activityType: "Event Created",
+        summary: `A new event (${created.title}) was created.`,
+        details: [
+          { label: "Title", value: created.title },
+          { label: "Event Date", value: created.eventDateISO },
+          {
+            label: "Recurrence",
+            value: created.isRecurring ? created.recurrenceMode : "none"
+          },
+          { label: "Event ID", value: created.id }
+        ]
+      })
+      .catch(() => undefined);
 
     return {
       id: created.id,

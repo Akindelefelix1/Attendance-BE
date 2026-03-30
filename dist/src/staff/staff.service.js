@@ -12,10 +12,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.StaffService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
+const email_service_1 = require("../notifications/email.service");
 let StaffService = class StaffService {
     prisma;
-    constructor(prisma) {
+    emailService;
+    constructor(prisma, emailService) {
         this.prisma = prisma;
+        this.emailService = emailService;
     }
     listByOrganization(organizationId) {
         return this.prisma.staffMember.findMany({
@@ -23,8 +26,8 @@ let StaffService = class StaffService {
             orderBy: { createdAt: "desc" }
         });
     }
-    create(organizationId, payload) {
-        return this.prisma.staffMember.create({
+    async create(organizationId, payload) {
+        const created = await this.prisma.staffMember.create({
             data: {
                 organization: { connect: { id: organizationId } },
                 fullName: payload.fullName,
@@ -35,6 +38,27 @@ let StaffService = class StaffService {
                 permissions: ["manage_attendance"]
             }
         });
+        const organization = await this.prisma.organization.findUnique({
+            where: { id: organizationId },
+            select: { name: true, adminEmails: true }
+        });
+        if (organization) {
+            void this.emailService
+                .sendOrganizationActivityEmail({
+                organizationName: organization.name,
+                adminEmails: organization.adminEmails,
+                activityType: "Staff Member Created",
+                summary: `A new staff member (${created.fullName}) was added.`,
+                details: [
+                    { label: "Staff Name", value: created.fullName },
+                    { label: "Role", value: created.role },
+                    { label: "Email", value: created.email },
+                    { label: "Staff ID", value: created.id }
+                ]
+            })
+                .catch(() => undefined);
+        }
+        return created;
     }
     update(id, payload) {
         return this.prisma.staffMember.update({
@@ -60,6 +84,7 @@ let StaffService = class StaffService {
 exports.StaffService = StaffService;
 exports.StaffService = StaffService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        email_service_1.EmailService])
 ], StaffService);
 //# sourceMappingURL=staff.service.js.map

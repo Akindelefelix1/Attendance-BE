@@ -1,5 +1,6 @@
 import type { DisposableRecurrenceMode } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { EmailService } from "../notifications/email.service";
 type DisposableFieldType = "full-name" | "email" | "phone" | "occupation" | "address" | "text";
 type DisposableField = {
     id: string;
@@ -34,7 +35,8 @@ type UpdateDisposablePayload = Partial<Omit<CreateDisposablePayload, "orgId"> & 
 }>;
 export declare class DisposableAttendanceService {
     private readonly prisma;
-    constructor(prisma: PrismaService);
+    private readonly emailService;
+    constructor(prisma: PrismaService, emailService: EmailService);
     private getTierLimit;
     private asFieldArray;
     private validateFields;

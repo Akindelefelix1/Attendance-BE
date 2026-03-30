@@ -1,10 +1,14 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import type { Prisma } from "@prisma/client";
+import { EmailService } from "../notifications/email.service";
 
 @Injectable()
 export class OrganizationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailService: EmailService
+  ) {}
 
   findAll() {
     return this.prisma.organization.findMany({
@@ -27,8 +31,24 @@ export class OrganizationsService {
     });
   }
 
-  create(data: Prisma.OrganizationCreateInput) {
-    return this.prisma.organization.create({ data });
+  async create(data: Prisma.OrganizationCreateInput) {
+    const created = await this.prisma.organization.create({ data });
+
+    void this.emailService
+      .sendOrganizationActivityEmail({
+        organizationName: created.name,
+        adminEmails: created.adminEmails,
+        activityType: "Organization Created",
+        summary: `A new organization (${created.name}) was created in Attendance.`,
+        details: [
+          { label: "Location", value: created.location },
+          { label: "Plan Tier", value: created.planTier },
+          { label: "Organization ID", value: created.id }
+        ]
+      })
+      .catch(() => undefined);
+
+    return created;
   }
 
   update(id: string, data: Prisma.OrganizationUpdateInput) {

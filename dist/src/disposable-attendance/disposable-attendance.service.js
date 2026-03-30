@@ -13,6 +13,7 @@ exports.DisposableAttendanceService = void 0;
 const common_1 = require("@nestjs/common");
 const crypto_1 = require("crypto");
 const prisma_service_1 = require("../prisma/prisma.service");
+const email_service_1 = require("../notifications/email.service");
 const FIELD_TYPES = new Set([
     "full-name",
     "email",
@@ -23,8 +24,10 @@ const FIELD_TYPES = new Set([
 ]);
 let DisposableAttendanceService = class DisposableAttendanceService {
     prisma;
-    constructor(prisma) {
+    emailService;
+    constructor(prisma, emailService) {
         this.prisma = prisma;
+        this.emailService = emailService;
     }
     getTierLimit(tier) {
         if (tier === "pro")
@@ -133,7 +136,7 @@ let DisposableAttendanceService = class DisposableAttendanceService {
         this.validateRecurring(payload);
         const organization = await this.prisma.organization.findUnique({
             where: { id: payload.orgId },
-            select: { id: true, planTier: true }
+            select: { id: true, name: true, planTier: true, adminEmails: true }
         });
         if (!organization) {
             throw new common_1.NotFoundException("Organization not found");
@@ -164,6 +167,23 @@ let DisposableAttendanceService = class DisposableAttendanceService {
                     : ""
             }
         });
+        void this.emailService
+            .sendOrganizationActivityEmail({
+            organizationName: organization.name,
+            adminEmails: organization.adminEmails,
+            activityType: "Event Created",
+            summary: `A new event (${created.title}) was created.`,
+            details: [
+                { label: "Title", value: created.title },
+                { label: "Event Date", value: created.eventDateISO },
+                {
+                    label: "Recurrence",
+                    value: created.isRecurring ? created.recurrenceMode : "none"
+                },
+                { label: "Event ID", value: created.id }
+            ]
+        })
+            .catch(() => undefined);
         return {
             id: created.id,
             publicId: created.publicId,
@@ -438,6 +458,7 @@ let DisposableAttendanceService = class DisposableAttendanceService {
 exports.DisposableAttendanceService = DisposableAttendanceService;
 exports.DisposableAttendanceService = DisposableAttendanceService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        email_service_1.EmailService])
 ], DisposableAttendanceService);
 //# sourceMappingURL=disposable-attendance.service.js.map

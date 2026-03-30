@@ -1,0 +1,12 @@
+Attendance Activity Alert
+
+Activity: {{activityType}}
+Organization: {{organizationName}}
+Summary: {{summary}}
+Triggered by: {{actor}}
+Time: {{happenedAtISO}}
+
+Details:
+{{detailsText}}
+
+This is an automated activity alert from Attendance.

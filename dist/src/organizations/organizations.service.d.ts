@@ -1,8 +1,10 @@
 import { PrismaService } from "../prisma/prisma.service";
 import type { Prisma } from "@prisma/client";
+import { EmailService } from "../notifications/email.service";
 export declare class OrganizationsService {
     private readonly prisma;
-    constructor(prisma: PrismaService);
+    private readonly emailService;
+    constructor(prisma: PrismaService, emailService: EmailService);
     findAll(): Prisma.PrismaPromise<({
         staff: {
             id: string;
@@ -114,7 +116,7 @@ export declare class OrganizationsService {
         officeLongitude: number | null;
         officeRadiusMeters: number | null;
     }) | null, null, import("@prisma/client/runtime/client").DefaultArgs, Prisma.PrismaClientOptions>;
-    create(data: Prisma.OrganizationCreateInput): Prisma.Prisma__OrganizationClient<{
+    create(data: Prisma.OrganizationCreateInput): Promise<{
         id: string;
         name: string;
         location: string;
@@ -133,7 +135,7 @@ export declare class OrganizationsService {
         officeLatitude: number | null;
         officeLongitude: number | null;
         officeRadiusMeters: number | null;
-    }, never, import("@prisma/client/runtime/client").DefaultArgs, Prisma.PrismaClientOptions>;
+    }>;
     update(id: string, data: Prisma.OrganizationUpdateInput): Prisma.Prisma__OrganizationClient<{
         id: string;
         name: string;

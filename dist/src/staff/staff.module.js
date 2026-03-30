@@ -10,11 +10,13 @@ exports.StaffModule = void 0;
 const common_1 = require("@nestjs/common");
 const staff_controller_1 = require("./staff.controller");
 const staff_service_1 = require("./staff.service");
+const notifications_module_1 = require("../notifications/notifications.module");
 let StaffModule = class StaffModule {
 };
 exports.StaffModule = StaffModule;
 exports.StaffModule = StaffModule = __decorate([
     (0, common_1.Module)({
+        imports: [notifications_module_1.NotificationsModule],
         controllers: [staff_controller_1.StaffController],
         providers: [staff_service_1.StaffService]
     })
