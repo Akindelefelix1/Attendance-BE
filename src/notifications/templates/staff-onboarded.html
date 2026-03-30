@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial, sans-serif; color: #1f2937; line-height: 1.6; }
+    .container { max-width: 640px; margin: 0 auto; padding: 20px; }
+    .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; background: #f9fafb; }
+    .meta { color: #6b7280; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Welcome to Attendance</h2>
+    <div class="card">
+      <p>Hello {{staffName}},</p>
+      <p>You have been onboarded to <strong>{{organizationName}}</strong>.</p>
+      <p>Please contact your organization admin to get your current staff login password if you do not have it yet.</p>
+      <p class="meta">Onboarded at: {{happenedAtISO}}</p>
+    </div>
+  </div>
+</body>
+</html>

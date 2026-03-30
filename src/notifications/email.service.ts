@@ -19,6 +19,18 @@ type OrganizationActivityPayload = {
   details?: Array<{ label: string; value: string }>;
 };
 
+type StaffOnboardingPayload = {
+  organizationName: string;
+  staffEmail: string;
+  staffName: string;
+};
+
+type StaffPasswordBroadcastPayload = {
+  organizationName: string;
+  staffEmails: string[];
+  staffLoginPassword: string;
+};
+
 type EmailDeliveryResult = {
   verifyUrl: string;
   delivered: boolean;
@@ -377,6 +389,85 @@ export class EmailService {
     const delivered = results.filter(Boolean).length;
     this.logger.log(
       `Organization activity notifications sent: ${delivered}/${recipients.length} delivered for ${payload.organizationName}`
+    );
+
+    return {
+      attempted: recipients.length,
+      delivered
+    };
+  }
+
+  async sendStaffOnboardingEmail(payload: StaffOnboardingPayload) {
+    const recipients = this.normalizeEmails([payload.staffEmail]);
+    if (recipients.length === 0) {
+      return { attempted: 0, delivered: 0 };
+    }
+
+    const happenedAtISO = new Date().toISOString();
+    const subject = `[Attendance] Welcome to ${payload.organizationName}`;
+    const htmlContent = this.templateService.renderTemplate("staff-onboarded.html", {
+      organizationName: payload.organizationName,
+      staffName: payload.staffName,
+      happenedAtISO
+    });
+    const textContent = this.templateService.renderTemplate("staff-onboarded.txt", {
+      organizationName: payload.organizationName,
+      staffName: payload.staffName,
+      happenedAtISO
+    });
+
+    const delivery = await this.sendGenericEmail(
+      recipients[0],
+      subject,
+      htmlContent,
+      textContent
+    );
+
+    return {
+      attempted: 1,
+      delivered: delivery.delivered ? 1 : 0
+    };
+  }
+
+  async sendStaffLoginPasswordUpdatedEmail(payload: StaffPasswordBroadcastPayload) {
+    const recipients = this.normalizeEmails(payload.staffEmails);
+    if (recipients.length === 0) {
+      this.logger.log(
+        `No staff recipients configured for staff password broadcast: ${payload.organizationName}`
+      );
+      return { attempted: 0, delivered: 0 };
+    }
+
+    const happenedAtISO = new Date().toISOString();
+    const subject = `[Attendance] Staff Login Password Updated - ${payload.organizationName}`;
+
+    const results = await Promise.all(
+      recipients.map(async (to) => {
+        const htmlContent = this.templateService.renderTemplate(
+          "staff-password-updated.html",
+          {
+            organizationName: payload.organizationName,
+            staffLoginPassword: payload.staffLoginPassword,
+            happenedAtISO
+          }
+        );
+        const textContent = this.templateService.renderTemplate(
+          "staff-password-updated.txt",
+          {
+            organizationName: payload.organizationName,
+            staffLoginPassword: payload.staffLoginPassword,
+            happenedAtISO
+          }
+        );
+
+        const delivery = await this.sendGenericEmail(to, subject, htmlContent, textContent);
+        return delivery.delivered;
+      })
+    );
+
+    const delivered = results.filter(Boolean).length;
+    this.logger.log(
+      `Staff password notifications sent: ${delivered}/${recipients.length} delivered for ${payload.organizationName}`
     );
 
     return {

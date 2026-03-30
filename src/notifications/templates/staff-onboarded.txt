@@ -1,0 +1,8 @@
+Welcome to Attendance
+
+Hello {{staffName}},
+
+You have been onboarded to {{organizationName}}.
+Please contact your organization admin to get your current staff login password if you do not have it yet.
+
+Onboarded at: {{happenedAtISO}}

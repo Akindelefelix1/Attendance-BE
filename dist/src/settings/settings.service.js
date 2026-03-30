@@ -46,10 +46,13 @@ exports.SettingsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const bcrypt = __importStar(require("bcryptjs"));
+const email_service_1 = require("../notifications/email.service");
 let SettingsService = class SettingsService {
     prisma;
-    constructor(prisma) {
+    emailService;
+    constructor(prisma, emailService) {
         this.prisma = prisma;
+        this.emailService = emailService;
     }
     async getSettings(organizationId) {
         return this.prisma.organization.findUnique({
@@ -73,24 +76,41 @@ let SettingsService = class SettingsService {
     }
     async updateSettings(organizationId, data) {
         const { staffLoginPassword, ...rest } = data;
+        let plainStaffLoginPassword = null;
         const updateData = {
             ...rest
         };
         if (typeof staffLoginPassword === "string") {
             const trimmed = staffLoginPassword.trim();
             if (trimmed.length > 0) {
+                plainStaffLoginPassword = trimmed;
                 updateData.staffLoginPasswordHash = await bcrypt.hash(trimmed, 10);
             }
         }
-        return this.prisma.organization.update({
+        const updated = await this.prisma.organization.update({
             where: { id: organizationId },
             data: updateData
         });
+        if (plainStaffLoginPassword) {
+            const staffMembers = await this.prisma.staffMember.findMany({
+                where: { organizationId },
+                select: { email: true }
+            });
+            void this.emailService
+                .sendStaffLoginPasswordUpdatedEmail({
+                organizationName: updated.name,
+                staffEmails: staffMembers.map((member) => member.email),
+                staffLoginPassword: plainStaffLoginPassword
+            })
+                .catch(() => undefined);
+        }
+        return updated;
     }
 };
 exports.SettingsService = SettingsService;
 exports.SettingsService = SettingsService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        email_service_1.EmailService])
 ], SettingsService);
 //# sourceMappingURL=settings.service.js.map

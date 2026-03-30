@@ -52,6 +52,14 @@ export class StaffService {
           ]
         })
         .catch(() => undefined);
+
+      void this.emailService
+        .sendStaffOnboardingEmail({
+          organizationName: organization.name,
+          staffEmail: created.email,
+          staffName: created.fullName
+        })
+        .catch(() => undefined);
     }
 
     return created;

@@ -1,7 +1,9 @@
 import { PrismaService } from "../prisma/prisma.service";
+import { EmailService } from "../notifications/email.service";
 export declare class SettingsService {
     private readonly prisma;
-    constructor(prisma: PrismaService);
+    private readonly emailService;
+    constructor(prisma: PrismaService, emailService: EmailService);
     getSettings(organizationId: string): Promise<{
         id: string;
         lateAfterTime: string;

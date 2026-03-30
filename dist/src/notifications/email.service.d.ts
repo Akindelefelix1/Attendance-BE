@@ -14,6 +14,16 @@ type OrganizationActivityPayload = {
         value: string;
     }>;
 };
+type StaffOnboardingPayload = {
+    organizationName: string;
+    staffEmail: string;
+    staffName: string;
+};
+type StaffPasswordBroadcastPayload = {
+    organizationName: string;
+    staffEmails: string[];
+    staffLoginPassword: string;
+};
 export declare class EmailService {
     private templateService;
     private readonly logger;
@@ -32,6 +42,14 @@ export declare class EmailService {
     private sendGenericViaSmtp;
     private sendGenericEmail;
     sendOrganizationActivityEmail(payload: OrganizationActivityPayload): Promise<{
+        attempted: number;
+        delivered: number;
+    }>;
+    sendStaffOnboardingEmail(payload: StaffOnboardingPayload): Promise<{
+        attempted: number;
+        delivered: number;
+    }>;
+    sendStaffLoginPasswordUpdatedEmail(payload: StaffPasswordBroadcastPayload): Promise<{
         attempted: number;
         delivered: number;
     }>;
