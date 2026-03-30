@@ -1,0 +1,10 @@
+Welcome to Attendance
+
+Hello {{name}},
+
+Please verify your admin email using this link:
+{{verifyUrl}}
+
+If you did not request this, you can ignore this email.
+
+© {{year}} Attendance System. All rights reserved.

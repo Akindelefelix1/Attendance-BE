@@ -2,6 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { resolve4 } from "node:dns/promises";
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
+import { TemplateService } from "./template.service";
 
 type AdminVerificationPayload = {
   email: string;
@@ -18,6 +19,8 @@ type EmailDeliveryResult = {
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
   private transporter: Transporter | null = null;
+
+  constructor(private templateService: TemplateService) {}
 
   isDeliveryConfigured() {
     const brevoApiKey = process.env.BREVO_API_KEY?.trim();
@@ -130,13 +133,26 @@ export class EmailService {
     };
   }
 
-  private async sendViaBrevoApi(payload: AdminVerificationPayload, verifyUrl: string) {
+  private async sendViaBrevoApi(
+    payload: AdminVerificationPayload,
+    verifyUrl: string,
+    userName?: string
+  ) {
     const apiKey = process.env.BREVO_API_KEY?.trim();
     if (!apiKey) {
       return null;
     }
 
     const from = this.parseFromAddress();
+    const htmlContent = this.templateService.renderTemplate(
+      "admin-verification.html",
+      { verifyUrl, name: userName || "Admin" }
+    );
+    const textContent = this.templateService.renderTemplate(
+      "admin-verification.txt",
+      { verifyUrl, name: userName || "Admin" }
+    );
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
 
@@ -154,8 +170,8 @@ export class EmailService {
           },
           to: [{ email: payload.email }],
           subject: "Verify your Attendance admin email",
-          textContent: `Welcome to Attendance. Verify your admin email with this link: ${verifyUrl}`,
-          htmlContent: `<p>Welcome to Attendance.</p><p>Please verify your admin email by clicking <a href=\"${verifyUrl}\">this link</a>.</p><p>If you did not request this, you can ignore this email.</p>`
+          textContent,
+          htmlContent
         }),
         signal: controller.signal
       });
@@ -167,22 +183,9 @@ export class EmailService {
         );
         return { verifyUrl, delivered: false, provider: "brevo-api" } as const;
       }
-
-      return { verifyUrl, delivered: true, provider: "brevo-api" } as const;
-    } catch (error) {
-      this.logger.error(
-        `Brevo API email send failed for ${payload.email}.`,
-        error instanceof Error ? error.stack : String(error)
-      );
-      return { verifyUrl, delivered: false, provider: "brevo-api" } as const;
-    } finally {
-      clearTimeout(timeout);
-    }
-  }
-
-  async sendAdminVerificationEmail(payload: AdminVerificationPayload) {
+, userName?: string) {
     const verifyUrl = this.getAdminVerifyUrl(payload.token);
-    const brevoApiResult = await this.sendViaBrevoApi(payload, verifyUrl);
+    const brevoApiResult = await this.sendViaBrevoApi(payload, verifyUrl, userName);
     if (brevoApiResult) {
       return brevoApiResult;
     }
@@ -190,6 +193,28 @@ export class EmailService {
     const transporter = await this.getTransporter();
 
     if (!transporter) {
+      this.logger.log(
+        `SMTP not configured. Verification link for ${payload.email}: ${verifyUrl}`
+      );
+      return { verifyUrl, delivered: false, provider: "none" };
+    }
+
+    try {
+      const htmlContent = this.templateService.renderTemplate(
+        "admin-verification.html",
+        { verifyUrl, name: userName || "Admin" }
+      );
+      const textContent = this.templateService.renderTemplate(
+        "admin-verification.txt",
+        { verifyUrl, name: userName || "Admin" }
+      );
+
+      await transporter.sendMail({
+        from: this.getFromAddress(),
+        to: payload.email,
+        subject: "Verify your Attendance admin email",
+        text: textContent,
+        html: htmlContent
       this.logger.log(
         `SMTP not configured. Verification link for ${payload.email}: ${verifyUrl}`
       );
