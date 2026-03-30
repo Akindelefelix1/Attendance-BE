@@ -55,11 +55,44 @@ let OrganizationsService = class OrganizationsService {
             .catch(() => undefined);
         return created;
     }
-    update(id, data) {
-        return this.prisma.organization.update({ where: { id }, data });
+    async update(id, data) {
+        const before = await this.prisma.organization.findUnique({
+            where: { id },
+            select: { name: true, adminEmails: true }
+        });
+        const updated = await this.prisma.organization.update({ where: { id }, data });
+        const adminEmails = Array.from(new Set([...(before?.adminEmails ?? []), ...updated.adminEmails]));
+        void this.emailService
+            .sendOrganizationActivityEmail({
+            organizationName: updated.name,
+            adminEmails,
+            activityType: "Organization Updated",
+            summary: `Organization settings for ${updated.name} were updated.`,
+            details: [
+                { label: "Location", value: updated.location },
+                { label: "Plan Tier", value: updated.planTier },
+                { label: "Organization ID", value: updated.id }
+            ]
+        })
+            .catch(() => undefined);
+        return updated;
     }
-    remove(id) {
-        return this.prisma.organization.delete({ where: { id } });
+    async remove(id) {
+        const removed = await this.prisma.organization.delete({ where: { id } });
+        void this.emailService
+            .sendOrganizationActivityEmail({
+            organizationName: removed.name,
+            adminEmails: removed.adminEmails,
+            activityType: "Organization Deleted",
+            summary: `Organization ${removed.name} was deleted from Attendance.`,
+            details: [
+                { label: "Location", value: removed.location },
+                { label: "Plan Tier", value: removed.planTier },
+                { label: "Organization ID", value: removed.id }
+            ]
+        })
+            .catch(() => undefined);
+        return removed;
     }
 };
 exports.OrganizationsService = OrganizationsService;

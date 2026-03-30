@@ -142,7 +142,7 @@ export declare class OrganizationsController {
         attendanceEditPolicy: "any" | "self_only";
         adminEmails: string[];
         planTier: "free" | "plus" | "pro";
-    }>): import("@prisma/client").Prisma.Prisma__OrganizationClient<{
+    }>): Promise<{
         id: string;
         name: string;
         location: string;
@@ -161,13 +161,13 @@ export declare class OrganizationsController {
         officeLatitude: number | null;
         officeLongitude: number | null;
         officeRadiusMeters: number | null;
-    }, never, import("@prisma/client/runtime/client").DefaultArgs, import("@prisma/client").Prisma.PrismaClientOptions>;
+    }>;
     remove(id: string, req: {
         user?: {
             orgId?: string;
             role?: string;
         };
-    }): import("@prisma/client").Prisma.Prisma__OrganizationClient<{
+    }): Promise<{
         id: string;
         name: string;
         location: string;
@@ -186,5 +186,5 @@ export declare class OrganizationsController {
         officeLatitude: number | null;
         officeLongitude: number | null;
         officeRadiusMeters: number | null;
-    }, never, import("@prisma/client/runtime/client").DefaultArgs, import("@prisma/client").Prisma.PrismaClientOptions>;
+    }>;
 }

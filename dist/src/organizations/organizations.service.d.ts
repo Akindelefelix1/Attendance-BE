@@ -136,7 +136,7 @@ export declare class OrganizationsService {
         officeLongitude: number | null;
         officeRadiusMeters: number | null;
     }>;
-    update(id: string, data: Prisma.OrganizationUpdateInput): Prisma.Prisma__OrganizationClient<{
+    update(id: string, data: Prisma.OrganizationUpdateInput): Promise<{
         id: string;
         name: string;
         location: string;
@@ -155,8 +155,8 @@ export declare class OrganizationsService {
         officeLatitude: number | null;
         officeLongitude: number | null;
         officeRadiusMeters: number | null;
-    }, never, import("@prisma/client/runtime/client").DefaultArgs, Prisma.PrismaClientOptions>;
-    remove(id: string): Prisma.Prisma__OrganizationClient<{
+    }>;
+    remove(id: string): Promise<{
         id: string;
         name: string;
         location: string;
@@ -175,5 +175,5 @@ export declare class OrganizationsService {
         officeLatitude: number | null;
         officeLongitude: number | null;
         officeRadiusMeters: number | null;
-    }, never, import("@prisma/client/runtime/client").DefaultArgs, Prisma.PrismaClientOptions>;
+    }>;
 }

@@ -60,25 +60,117 @@ let StaffService = class StaffService {
         }
         return created;
     }
-    update(id, payload) {
-        return this.prisma.staffMember.update({
+    async update(id, payload) {
+        const updated = await this.prisma.staffMember.update({
             where: { id },
-            data: payload
+            data: {
+                ...payload,
+                email: payload.email?.trim().toLowerCase()
+            },
+            include: {
+                organization: {
+                    select: { name: true, adminEmails: true }
+                }
+            }
         });
+        void this.emailService
+            .sendOrganizationActivityEmail({
+            organizationName: updated.organization.name,
+            adminEmails: updated.organization.adminEmails,
+            activityType: "Staff Member Updated",
+            summary: `Staff member (${updated.fullName}) details were updated.`,
+            details: [
+                { label: "Staff Name", value: updated.fullName },
+                { label: "Role", value: updated.role },
+                { label: "Email", value: updated.email },
+                { label: "Staff ID", value: updated.id }
+            ]
+        })
+            .catch(() => undefined);
+        const { organization, ...result } = updated;
+        return result;
     }
-    updateInOrg(id, organizationId, payload) {
-        return this.prisma.staffMember.update({
+    async updateInOrg(id, organizationId, payload) {
+        const updated = await this.prisma.staffMember.update({
             where: { id, organizationId },
-            data: payload
+            data: {
+                ...payload,
+                email: payload.email?.trim().toLowerCase()
+            },
+            include: {
+                organization: {
+                    select: { name: true, adminEmails: true }
+                }
+            }
         });
+        void this.emailService
+            .sendOrganizationActivityEmail({
+            organizationName: updated.organization.name,
+            adminEmails: updated.organization.adminEmails,
+            activityType: "Staff Member Updated",
+            summary: `Staff member (${updated.fullName}) details were updated.`,
+            details: [
+                { label: "Staff Name", value: updated.fullName },
+                { label: "Role", value: updated.role },
+                { label: "Email", value: updated.email },
+                { label: "Staff ID", value: updated.id }
+            ]
+        })
+            .catch(() => undefined);
+        const { organization, ...result } = updated;
+        return result;
     }
-    remove(id) {
-        return this.prisma.staffMember.delete({ where: { id } });
-    }
-    removeInOrg(id, organizationId) {
-        return this.prisma.staffMember.delete({
-            where: { id, organizationId }
+    async remove(id) {
+        const removed = await this.prisma.staffMember.delete({
+            where: { id },
+            include: {
+                organization: {
+                    select: { name: true, adminEmails: true }
+                }
+            }
         });
+        void this.emailService
+            .sendOrganizationActivityEmail({
+            organizationName: removed.organization.name,
+            adminEmails: removed.organization.adminEmails,
+            activityType: "Staff Member Removed",
+            summary: `Staff member (${removed.fullName}) was removed from the organization.`,
+            details: [
+                { label: "Staff Name", value: removed.fullName },
+                { label: "Role", value: removed.role },
+                { label: "Email", value: removed.email },
+                { label: "Staff ID", value: removed.id }
+            ]
+        })
+            .catch(() => undefined);
+        const { organization, ...result } = removed;
+        return result;
+    }
+    async removeInOrg(id, organizationId) {
+        const removed = await this.prisma.staffMember.delete({
+            where: { id, organizationId },
+            include: {
+                organization: {
+                    select: { name: true, adminEmails: true }
+                }
+            }
+        });
+        void this.emailService
+            .sendOrganizationActivityEmail({
+            organizationName: removed.organization.name,
+            adminEmails: removed.organization.adminEmails,
+            activityType: "Staff Member Removed",
+            summary: `Staff member (${removed.fullName}) was removed from the organization.`,
+            details: [
+                { label: "Staff Name", value: removed.fullName },
+                { label: "Role", value: removed.role },
+                { label: "Email", value: removed.email },
+                { label: "Staff ID", value: removed.id }
+            ]
+        })
+            .catch(() => undefined);
+        const { organization, ...result } = removed;
+        return result;
     }
 };
 exports.StaffService = StaffService;

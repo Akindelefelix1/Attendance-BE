@@ -44,7 +44,7 @@ export declare class StaffService {
         fullName?: string;
         role?: string;
         email?: string;
-    }): import("@prisma/client").Prisma.Prisma__StaffMemberClient<{
+    }): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -59,12 +59,12 @@ export declare class StaffService {
         resetTokenExp: Date | null;
         appRole: import("@prisma/client").$Enums.AppRole;
         permissions: import("@prisma/client").$Enums.Permission[];
-    }, never, import("@prisma/client/runtime/client").DefaultArgs, import("@prisma/client").Prisma.PrismaClientOptions>;
+    }>;
     updateInOrg(id: string, organizationId: string, payload: {
         fullName?: string;
         role?: string;
         email?: string;
-    }): import("@prisma/client").Prisma.Prisma__StaffMemberClient<{
+    }): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -79,8 +79,8 @@ export declare class StaffService {
         resetTokenExp: Date | null;
         appRole: import("@prisma/client").$Enums.AppRole;
         permissions: import("@prisma/client").$Enums.Permission[];
-    }, never, import("@prisma/client/runtime/client").DefaultArgs, import("@prisma/client").Prisma.PrismaClientOptions>;
-    remove(id: string): import("@prisma/client").Prisma.Prisma__StaffMemberClient<{
+    }>;
+    remove(id: string): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -95,8 +95,8 @@ export declare class StaffService {
         resetTokenExp: Date | null;
         appRole: import("@prisma/client").$Enums.AppRole;
         permissions: import("@prisma/client").$Enums.Permission[];
-    }, never, import("@prisma/client/runtime/client").DefaultArgs, import("@prisma/client").Prisma.PrismaClientOptions>;
-    removeInOrg(id: string, organizationId: string): import("@prisma/client").Prisma.Prisma__StaffMemberClient<{
+    }>;
+    removeInOrg(id: string, organizationId: string): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -111,5 +111,5 @@ export declare class StaffService {
         resetTokenExp: Date | null;
         appRole: import("@prisma/client").$Enums.AppRole;
         permissions: import("@prisma/client").$Enums.Permission[];
-    }, never, import("@prisma/client/runtime/client").DefaultArgs, import("@prisma/client").Prisma.PrismaClientOptions>;
+    }>;
 }

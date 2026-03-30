@@ -59,7 +59,7 @@ export declare class StaffController {
         fullName?: string;
         role?: string;
         email?: string;
-    }): import("@prisma/client").Prisma.Prisma__StaffMemberClient<{
+    }): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -74,13 +74,13 @@ export declare class StaffController {
         resetTokenExp: Date | null;
         appRole: import("@prisma/client").$Enums.AppRole;
         permissions: import("@prisma/client").$Enums.Permission[];
-    }, never, import("@prisma/client/runtime/client").DefaultArgs, import("@prisma/client").Prisma.PrismaClientOptions>;
+    }>;
     remove(id: string, req: {
         user?: {
             orgId?: string;
             role?: string;
         };
-    }): import("@prisma/client").Prisma.Prisma__StaffMemberClient<{
+    }): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -95,5 +95,5 @@ export declare class StaffController {
         resetTokenExp: Date | null;
         appRole: import("@prisma/client").$Enums.AppRole;
         permissions: import("@prisma/client").$Enums.Permission[];
-    }, never, import("@prisma/client/runtime/client").DefaultArgs, import("@prisma/client").Prisma.PrismaClientOptions>;
+    }>;
 }

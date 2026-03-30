@@ -235,6 +235,29 @@ let DisposableAttendanceService = class DisposableAttendanceService {
                 isArchived: updates.isArchived
             }
         });
+        const organization = await this.prisma.organization.findUnique({
+            where: { id: orgId },
+            select: { name: true, adminEmails: true }
+        });
+        if (organization) {
+            void this.emailService
+                .sendOrganizationActivityEmail({
+                organizationName: organization.name,
+                adminEmails: organization.adminEmails,
+                activityType: "Event Updated",
+                summary: `Event (${next.title}) details were updated.`,
+                details: [
+                    { label: "Title", value: next.title },
+                    { label: "Event Date", value: next.eventDateISO },
+                    {
+                        label: "Recurrence",
+                        value: next.isRecurring ? next.recurrenceMode : "none"
+                    },
+                    { label: "Event ID", value: next.id }
+                ]
+            })
+                .catch(() => undefined);
+        }
         return {
             id: next.id,
             publicId: next.publicId,
@@ -259,6 +282,25 @@ let DisposableAttendanceService = class DisposableAttendanceService {
             throw new common_1.NotFoundException("Disposable attendance not found");
         }
         await this.prisma.disposableAttendance.delete({ where: { id } });
+        const organization = await this.prisma.organization.findUnique({
+            where: { id: orgId },
+            select: { name: true, adminEmails: true }
+        });
+        if (organization) {
+            void this.emailService
+                .sendOrganizationActivityEmail({
+                organizationName: organization.name,
+                adminEmails: organization.adminEmails,
+                activityType: "Event Removed",
+                summary: `Event (${existing.title}) was removed.`,
+                details: [
+                    { label: "Title", value: existing.title },
+                    { label: "Event Date", value: existing.eventDateISO },
+                    { label: "Event ID", value: existing.id }
+                ]
+            })
+                .catch(() => undefined);
+        }
         return { ok: true };
     }
     async listResponses(attendanceId, orgId) {
