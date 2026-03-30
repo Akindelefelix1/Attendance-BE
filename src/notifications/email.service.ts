@@ -2,6 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { resolve4 } from "node:dns/promises";
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
+import sgMail from "@sendgrid/mail";
 import { TemplateService } from "./template.service";
 
 type AdminVerificationPayload = {
@@ -12,7 +13,7 @@ type AdminVerificationPayload = {
 type EmailDeliveryResult = {
   verifyUrl: string;
   delivered: boolean;
-  provider: "brevo-api" | "smtp" | "none";
+  provider: "sendgrid" | "brevo-api" | "smtp" | "none";
 };
 
 @Injectable()
@@ -20,14 +21,27 @@ export class EmailService {
   private readonly logger = new Logger(EmailService.name);
   private transporter: Transporter | null = null;
 
-  constructor(private templateService: TemplateService) {}
+  constructor(private templateService: TemplateService) {
+    const sendGridApiKey = process.env.SENDGRID_API_KEY?.trim();
+    if (sendGridApiKey) {
+      sgMail.setApiKey(sendGridApiKey);
+    }
+  }
 
   isDeliveryConfigured() {
+    // Check SendGrid first (highest priority)
+    const sendGridApiKey = process.env.SENDGRID_API_KEY?.trim();
+    if (sendGridApiKey) {
+      return true;
+    }
+
+    // Then check Brevo
     const brevoApiKey = process.env.BREVO_API_KEY?.trim();
     if (brevoApiKey) {
       return true;
     }
 
+    // Finally check SMTP
     const host = process.env.SMTP_HOST?.trim();
     const portRaw = process.env.SMTP_PORT?.trim();
     const user = process.env.SMTP_USER?.trim();
@@ -79,14 +93,20 @@ export class EmailService {
       return this.transporter;
     }
 
-    if (!this.isDeliveryConfigured()) {
+    const host = process.env.SMTP_HOST?.trim();
+    const portRaw = process.env.SMTP_PORT?.trim();
+    const user = process.env.SMTP_USER?.trim();
+    const pass = process.env.SMTP_PASS;
+
+    if (!host || !portRaw || !user || !pass) {
       return null;
     }
 
-    const host = process.env.SMTP_HOST!.trim();
-    const port = Number(process.env.SMTP_PORT!.trim());
-    const user = process.env.SMTP_USER!.trim();
-    const pass = process.env.SMTP_PASS!;
+    const port = Number(portRaw);
+    if (!Number.isFinite(port)) {
+      return null;
+    }
+
     const configuredSecure = process.env.SMTP_SECURE?.trim().toLowerCase();
     const secure =
       configuredSecure !== undefined ? configuredSecure === "true" : port === 465;
@@ -131,6 +151,52 @@ export class EmailService {
       name: matched[1].trim().replace(/^"|"$/g, "") || "Attendance",
       email: matched[2].trim()
     };
+  }
+
+  private async sendViaSendGrid(
+    payload: AdminVerificationPayload,
+    verifyUrl: string,
+    userName?: string
+  ) {
+    const apiKey = process.env.SENDGRID_API_KEY?.trim();
+    if (!apiKey) {
+      return null;
+    }
+
+    try {
+      const from = this.parseFromAddress();
+      const htmlContent = this.templateService.renderTemplate(
+        "admin-verification.html",
+        { verifyUrl, name: userName || "Admin" }
+      );
+      const textContent = this.templateService.renderTemplate(
+        "admin-verification.txt",
+        { verifyUrl, name: userName || "Admin" }
+      );
+
+      await sgMail.send({
+        to: payload.email,
+        from: {
+          email: from.email,
+          name: from.name
+        },
+        subject: "Verify your Attendance admin email",
+        text: textContent,
+        html: htmlContent,
+        replyTo: from.email
+      });
+
+      this.logger.log(
+        `Verification email sent to ${payload.email} via SendGrid`
+      );
+      return { verifyUrl, delivered: true, provider: "sendgrid" } as const;
+    } catch (error) {
+      this.logger.error(
+        `SendGrid email send failed for ${payload.email}.`,
+        error instanceof Error ? error.stack : String(error)
+      );
+      return { verifyUrl, delivered: false, provider: "sendgrid" } as const;
+    }
   }
 
   private async sendViaBrevoApi(
@@ -183,18 +249,43 @@ export class EmailService {
         );
         return { verifyUrl, delivered: false, provider: "brevo-api" } as const;
       }
-, userName?: string) {
+
+      this.logger.log(
+        `Verification email sent to ${payload.email} via Brevo API`
+      );
+      return { verifyUrl, delivered: true, provider: "brevo-api" } as const;
+    } catch (error) {
+      this.logger.error(
+        `Brevo API email send failed for ${payload.email}.`,
+        error instanceof Error ? error.stack : String(error)
+      );
+      return { verifyUrl, delivered: false, provider: "brevo-api" } as const;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  async sendAdminVerificationEmail(payload: AdminVerificationPayload, userName?: string) {
     const verifyUrl = this.getAdminVerifyUrl(payload.token);
+
+    // Try SendGrid first (highest priority)
+    const sendGridResult = await this.sendViaSendGrid(payload, verifyUrl, userName);
+    if (sendGridResult) {
+      return sendGridResult;
+    }
+
+    // Then try Brevo
     const brevoApiResult = await this.sendViaBrevoApi(payload, verifyUrl, userName);
     if (brevoApiResult) {
       return brevoApiResult;
     }
 
+    // Finally try SMTP
     const transporter = await this.getTransporter();
 
     if (!transporter) {
       this.logger.log(
-        `SMTP not configured. Verification link for ${payload.email}: ${verifyUrl}`
+        `No email provider configured. Verification link for ${payload.email}: ${verifyUrl}`
       );
       return { verifyUrl, delivered: false, provider: "none" };
     }
@@ -215,20 +306,11 @@ export class EmailService {
         subject: "Verify your Attendance admin email",
         text: textContent,
         html: htmlContent
-      this.logger.log(
-        `SMTP not configured. Verification link for ${payload.email}: ${verifyUrl}`
-      );
-      return { verifyUrl, delivered: false, provider: "none" };
-    }
-
-    try {
-      await transporter.sendMail({
-        from: this.getFromAddress(),
-        to: payload.email,
-        subject: "Verify your Attendance admin email",
-        text: `Welcome to Attendance. Verify your admin email with this link: ${verifyUrl}`,
-        html: `<p>Welcome to Attendance.</p><p>Please verify your admin email by clicking <a href="${verifyUrl}">this link</a>.</p><p>If you did not request this, you can ignore this email.</p>`
       });
+
+      this.logger.log(
+        `Verification email sent to ${payload.email} via SMTP`
+      );
     } catch (error) {
       this.logger.error(
         `Failed to send verification email to ${payload.email}.`,
