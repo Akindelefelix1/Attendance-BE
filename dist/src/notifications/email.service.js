@@ -153,7 +153,16 @@ let EmailService = EmailService_1 = class EmailService {
             return { verifyUrl, delivered: true, provider: "sendgrid" };
         }
         catch (error) {
-            this.logger.error(`SendGrid email send failed for ${payload.email}.`, error instanceof Error ? error.stack : String(error));
+            const sendGridStatus = typeof error === "object" && error !== null && "code" in error
+                ? String(error.code ?? "")
+                : "";
+            const sendGridBody = typeof error === "object" &&
+                error !== null &&
+                "response" in error &&
+                error.response?.body
+                ? JSON.stringify(error.response.body)
+                : "";
+            this.logger.error(`SendGrid email send failed for ${payload.email}. ${sendGridStatus ? `Code: ${sendGridStatus}.` : ""} ${sendGridBody ? `Response: ${sendGridBody}` : ""}`, error instanceof Error ? error.stack : String(error));
             return { verifyUrl, delivered: false, provider: "sendgrid" };
         }
     }
@@ -205,11 +214,11 @@ let EmailService = EmailService_1 = class EmailService {
     async sendAdminVerificationEmail(payload, userName) {
         const verifyUrl = this.getAdminVerifyUrl(payload.token);
         const sendGridResult = await this.sendViaSendGrid(payload, verifyUrl, userName);
-        if (sendGridResult) {
+        if (sendGridResult?.delivered) {
             return sendGridResult;
         }
         const brevoApiResult = await this.sendViaBrevoApi(payload, verifyUrl, userName);
-        if (brevoApiResult) {
+        if (brevoApiResult?.delivered) {
             return brevoApiResult;
         }
         const transporter = await this.getTransporter();

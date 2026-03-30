@@ -191,8 +191,20 @@ export class EmailService {
       );
       return { verifyUrl, delivered: true, provider: "sendgrid" } as const;
     } catch (error) {
+      const sendGridStatus =
+        typeof error === "object" && error !== null && "code" in error
+          ? String((error as { code?: unknown }).code ?? "")
+          : "";
+      const sendGridBody =
+        typeof error === "object" &&
+        error !== null &&
+        "response" in error &&
+        (error as { response?: { body?: unknown } }).response?.body
+          ? JSON.stringify((error as { response: { body: unknown } }).response.body)
+          : "";
+
       this.logger.error(
-        `SendGrid email send failed for ${payload.email}.`,
+        `SendGrid email send failed for ${payload.email}. ${sendGridStatus ? `Code: ${sendGridStatus}.` : ""} ${sendGridBody ? `Response: ${sendGridBody}` : ""}`,
         error instanceof Error ? error.stack : String(error)
       );
       return { verifyUrl, delivered: false, provider: "sendgrid" } as const;
@@ -270,13 +282,13 @@ export class EmailService {
 
     // Try SendGrid first (highest priority)
     const sendGridResult = await this.sendViaSendGrid(payload, verifyUrl, userName);
-    if (sendGridResult) {
+    if (sendGridResult?.delivered) {
       return sendGridResult;
     }
 
     // Then try Brevo
     const brevoApiResult = await this.sendViaBrevoApi(payload, verifyUrl, userName);
-    if (brevoApiResult) {
+    if (brevoApiResult?.delivered) {
       return brevoApiResult;
     }
 

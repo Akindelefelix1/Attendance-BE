@@ -23,14 +23,6 @@ export declare class EmailService {
         readonly provider: "sendgrid";
     } | {
         readonly verifyUrl: string;
-        readonly delivered: false;
-        readonly provider: "sendgrid";
-    } | {
-        readonly verifyUrl: string;
-        readonly delivered: false;
-        readonly provider: "brevo-api";
-    } | {
-        readonly verifyUrl: string;
         readonly delivered: true;
         readonly provider: "brevo-api";
     } | {
