@@ -61,7 +61,10 @@ __decorate([
 ], SettingsController.prototype, "getSettings", null);
 __decorate([
     (0, common_1.Patch)(":orgId"),
-    (0, swagger_1.ApiOperation)({ summary: "Update organization settings" }),
+    (0, swagger_1.ApiOperation)({
+        summary: "Update organization settings",
+        description: "When staffLoginPassword is provided, the backend invalidates existing staff passwords and sends per-staff password reset links."
+    }),
     (0, swagger_1.ApiParam)({ name: "orgId", type: String }),
     (0, swagger_1.ApiBody)({
         schema: {
@@ -79,7 +82,10 @@ __decorate([
                 attendanceEditPolicy: { type: "string", enum: ["any", "self_only"] },
                 adminEmails: { type: "array", items: { type: "string", format: "email" } },
                 planTier: { type: "string", enum: ["free", "plus", "pro"] },
-                staffLoginPassword: { type: "string" }
+                staffLoginPassword: {
+                    type: "string",
+                    description: "Trigger for mandatory staff password reset links (plaintext value is not used for login)."
+                }
             }
         }
     }),

@@ -28,7 +28,7 @@ export class AuthController {
   @Post("login")
   @ApiOperation({ summary: "Admin login" })
   @ApiOkResponse({ description: "Admin authenticated successfully" })
-  @ApiUnauthorizedResponse({ description: "Invalid credentials" })
+  @ApiUnauthorizedResponse({ description: "Incorrect email or password" })
   async login(
     @Body() body: AdminLoginDto,
     @Res({ passthrough: true }) res: Response
@@ -40,7 +40,7 @@ export class AuthController {
   @Post("staff/login")
   @ApiOperation({ summary: "Staff login" })
   @ApiOkResponse({ description: "Staff authenticated successfully" })
-  @ApiUnauthorizedResponse({ description: "Invalid credentials" })
+  @ApiUnauthorizedResponse({ description: "Incorrect email or password" })
   async staffLogin(
     @Body() body: StaffLoginDto,
     @Res({ passthrough: true }) res: Response
@@ -65,7 +65,10 @@ export class AuthController {
 
   @Post("staff/request-reset")
   @ApiOperation({ summary: "Request staff password reset token" })
-  @ApiOkResponse({ description: "Password reset request accepted" })
+  @ApiOkResponse({
+    description:
+      "Password reset request accepted. Always returns success to avoid user enumeration."
+  })
   requestReset(@Body() body: RequestEmailDto) {
     return this.authService.requestStaffReset(body.email);
   }
@@ -80,7 +83,10 @@ export class AuthController {
 
   @Post("admin/request-reset")
   @ApiOperation({ summary: "Request admin password reset token" })
-  @ApiOkResponse({ description: "Password reset request accepted" })
+  @ApiOkResponse({
+    description:
+      "Password reset request accepted. Always returns success to avoid user enumeration."
+  })
   requestAdminReset(@Body() body: RequestEmailDto) {
     return this.authService.requestAdminReset(body.email);
   }

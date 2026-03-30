@@ -12,6 +12,7 @@ import {
 } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
 import {
+  ApiConflictResponse,
   ApiBody,
   ApiCookieAuth,
   ApiOkResponse,
@@ -75,6 +76,9 @@ export class StaffController {
     }
   })
   @ApiOkResponse({ description: "Staff member created" })
+  @ApiConflictResponse({
+    description: "This staff email has already been added for this organization"
+  })
   @ApiUnauthorizedResponse({ description: "Authentication/authorization failed" })
   @UseGuards(AuthGuard("jwt"), PermissionsGuard)
   @Permissions("manage_staff")
@@ -105,6 +109,9 @@ export class StaffController {
     }
   })
   @ApiOkResponse({ description: "Staff member updated" })
+  @ApiConflictResponse({
+    description: "This staff email has already been added for this organization"
+  })
   @ApiUnauthorizedResponse({ description: "Authentication/authorization failed" })
   @UseGuards(AuthGuard("jwt"), PermissionsGuard)
   @Permissions("manage_staff")

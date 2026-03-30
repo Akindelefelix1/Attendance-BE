@@ -91,6 +91,9 @@ __decorate([
         }
     }),
     (0, swagger_1.ApiOkResponse)({ description: "Staff member created" }),
+    (0, swagger_1.ApiConflictResponse)({
+        description: "This staff email has already been added for this organization"
+    }),
     (0, swagger_1.ApiUnauthorizedResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_staff"),
@@ -115,6 +118,9 @@ __decorate([
         }
     }),
     (0, swagger_1.ApiOkResponse)({ description: "Staff member updated" }),
+    (0, swagger_1.ApiConflictResponse)({
+        description: "This staff email has already been added for this organization"
+    }),
     (0, swagger_1.ApiUnauthorizedResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_staff"),

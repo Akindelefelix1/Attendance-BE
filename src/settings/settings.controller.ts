@@ -59,7 +59,11 @@ export class SettingsController {
   }
 
   @Patch(":orgId")
-  @ApiOperation({ summary: "Update organization settings" })
+  @ApiOperation({
+    summary: "Update organization settings",
+    description:
+      "When staffLoginPassword is provided, the backend invalidates existing staff passwords and sends per-staff password reset links."
+  })
   @ApiParam({ name: "orgId", type: String })
   @ApiBody({
     schema: {
@@ -77,7 +81,11 @@ export class SettingsController {
         attendanceEditPolicy: { type: "string", enum: ["any", "self_only"] },
         adminEmails: { type: "array", items: { type: "string", format: "email" } },
         planTier: { type: "string", enum: ["free", "plus", "pro"] },
-        staffLoginPassword: { type: "string" }
+        staffLoginPassword: {
+          type: "string",
+          description:
+            "Trigger for mandatory staff password reset links (plaintext value is not used for login)."
+        }
       }
     }
   })

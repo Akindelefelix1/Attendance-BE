@@ -71,7 +71,7 @@ __decorate([
     (0, common_1.Post)("login"),
     (0, swagger_1.ApiOperation)({ summary: "Admin login" }),
     (0, swagger_1.ApiOkResponse)({ description: "Admin authenticated successfully" }),
-    (0, swagger_1.ApiUnauthorizedResponse)({ description: "Invalid credentials" }),
+    (0, swagger_1.ApiUnauthorizedResponse)({ description: "Incorrect email or password" }),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
@@ -82,7 +82,7 @@ __decorate([
     (0, common_1.Post)("staff/login"),
     (0, swagger_1.ApiOperation)({ summary: "Staff login" }),
     (0, swagger_1.ApiOkResponse)({ description: "Staff authenticated successfully" }),
-    (0, swagger_1.ApiUnauthorizedResponse)({ description: "Invalid credentials" }),
+    (0, swagger_1.ApiUnauthorizedResponse)({ description: "Incorrect email or password" }),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
@@ -111,7 +111,9 @@ __decorate([
 __decorate([
     (0, common_1.Post)("staff/request-reset"),
     (0, swagger_1.ApiOperation)({ summary: "Request staff password reset token" }),
-    (0, swagger_1.ApiOkResponse)({ description: "Password reset request accepted" }),
+    (0, swagger_1.ApiOkResponse)({
+        description: "Password reset request accepted. Always returns success to avoid user enumeration."
+    }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [auth_dto_1.RequestEmailDto]),
@@ -130,7 +132,9 @@ __decorate([
 __decorate([
     (0, common_1.Post)("admin/request-reset"),
     (0, swagger_1.ApiOperation)({ summary: "Request admin password reset token" }),
-    (0, swagger_1.ApiOkResponse)({ description: "Password reset request accepted" }),
+    (0, swagger_1.ApiOkResponse)({
+        description: "Password reset request accepted. Always returns success to avoid user enumeration."
+    }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [auth_dto_1.RequestEmailDto]),
