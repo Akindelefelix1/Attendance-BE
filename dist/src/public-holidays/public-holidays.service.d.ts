@@ -3,6 +3,7 @@ import { PublicHoliday } from "@prisma/client";
 export declare class PublicHolidaysService {
     private readonly prisma;
     constructor(prisma: PrismaService);
+    private isDuplicateKeyError;
     create(orgId: string, data: {
         name: string;
         dateISO: string;

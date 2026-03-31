@@ -17,18 +17,32 @@ let PublicHolidaysService = class PublicHolidaysService {
     constructor(prisma) {
         this.prisma = prisma;
     }
+    isDuplicateKeyError(error) {
+        return (!!error &&
+            typeof error === "object" &&
+            "code" in error &&
+            error.code === "P2002");
+    }
     async create(orgId, data) {
-        return this.prisma.publicHoliday.create({
-            data: {
-                organizationId: orgId,
-                name: data.name,
-                dateISO: data.dateISO,
-                isRecurring: data.isRecurring ?? false,
-                recurrencePattern: data.recurrencePattern,
-                description: data.description ?? "",
-                affectsAllStaff: data.affectsAllStaff ?? true
+        try {
+            return await this.prisma.publicHoliday.create({
+                data: {
+                    organizationId: orgId,
+                    name: data.name,
+                    dateISO: data.dateISO,
+                    isRecurring: data.isRecurring ?? false,
+                    recurrencePattern: data.recurrencePattern,
+                    description: data.description ?? "",
+                    affectsAllStaff: data.affectsAllStaff ?? true
+                }
+            });
+        }
+        catch (error) {
+            if (this.isDuplicateKeyError(error)) {
+                throw new common_1.ConflictException("A holiday already exists for this date");
             }
-        });
+            throw new common_1.InternalServerErrorException("Failed to create holiday");
+        }
     }
     async findAll(orgId) {
         return this.prisma.publicHoliday.findMany({
@@ -42,12 +56,20 @@ let PublicHolidaysService = class PublicHolidaysService {
         });
     }
     async update(orgId, id, data) {
-        return this.prisma.publicHoliday.update({
-            where: { id },
-            data: {
-                ...data
+        try {
+            return await this.prisma.publicHoliday.update({
+                where: { id },
+                data: {
+                    ...data
+                }
+            });
+        }
+        catch (error) {
+            if (this.isDuplicateKeyError(error)) {
+                throw new common_1.ConflictException("A holiday already exists for this date");
             }
-        });
+            throw new common_1.InternalServerErrorException("Failed to update holiday");
+        }
     }
     async delete(orgId, id) {
         return this.prisma.publicHoliday.delete({

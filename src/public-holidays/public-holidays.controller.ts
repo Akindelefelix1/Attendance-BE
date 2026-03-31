@@ -34,6 +34,45 @@ import { PublicHolidaysService } from "./public-holidays.service";
 export class PublicHolidaysController {
   constructor(private readonly publicHolidaysService: PublicHolidaysService) {}
 
+  private normalizeDateISO(input: string) {
+    const raw = (input ?? "").trim();
+    if (!raw) {
+      throw new BadRequestException("Date is required");
+    }
+
+    // Already ISO yyyy-mm-dd.
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+      return raw;
+    }
+
+    // Accept dd/mm/yyyy or mm/dd/yyyy and normalize to yyyy-mm-dd.
+    const slashParts = raw.split("/");
+    if (slashParts.length === 3) {
+      const [first, second, yearRaw] = slashParts;
+      const year = Number(yearRaw);
+      const a = Number(first);
+      const b = Number(second);
+      if (
+        Number.isInteger(year) &&
+        Number.isInteger(a) &&
+        Number.isInteger(b) &&
+        year >= 1900 &&
+        year <= 9999 &&
+        a >= 1 &&
+        a <= 31 &&
+        b >= 1 &&
+        b <= 31
+      ) {
+        // Resolve ambiguity with a pragmatic default: day/month/year.
+        const day = String(a).padStart(2, "0");
+        const month = String(b).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      }
+    }
+
+    throw new BadRequestException("Invalid date format. Use YYYY-MM-DD.");
+  }
+
   private assertOrgScope(
     requestOrgId: string,
     user?: { orgId?: string; role?: string }
@@ -173,9 +212,11 @@ export class PublicHolidaysController {
       throw new BadRequestException("Name and date are required");
     }
 
+    const normalizedDateISO = this.normalizeDateISO(body.dateISO);
+
     return this.publicHolidaysService.create(orgId, {
       name: body.name,
-      dateISO: body.dateISO,
+      dateISO: normalizedDateISO,
       isRecurring: body.isRecurring ?? false,
       recurrencePattern: body.recurrencePattern,
       description: body.description,
@@ -265,7 +306,12 @@ export class PublicHolidaysController {
       throw new NotFoundException("Holiday not found");
     }
 
-    return this.publicHolidaysService.update(orgId, id, body);
+    const normalizedPayload = {
+      ...body,
+      ...(body.dateISO ? { dateISO: this.normalizeDateISO(body.dateISO) } : {})
+    };
+
+    return this.publicHolidaysService.update(orgId, id, normalizedPayload);
   }
 
   @Delete(":id")

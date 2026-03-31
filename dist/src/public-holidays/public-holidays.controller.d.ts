@@ -2,6 +2,7 @@ import { PublicHolidaysService } from "./public-holidays.service";
 export declare class PublicHolidaysController {
     private readonly publicHolidaysService;
     constructor(publicHolidaysService: PublicHolidaysService);
+    private normalizeDateISO;
     private assertOrgScope;
     findAll(orgId: string, req: any): Promise<{
         id: string;
