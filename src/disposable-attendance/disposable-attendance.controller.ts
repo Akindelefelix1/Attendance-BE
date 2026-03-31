@@ -175,6 +175,11 @@ export class DisposableAttendanceController {
           type: "string",
           nullable: true,
           description: "Custom RRULE for recurrence"
+        },
+        allowPreRegister: {
+          type: "boolean",
+          description: "Allow participants to pre-register before event day and check in on event day",
+          example: false
         }
       }
     }
@@ -213,6 +218,7 @@ export class DisposableAttendanceController {
       recurrenceMode: "none" | "daily" | "weekly" | "monthly" | "custom";
       recurrenceEndDateISO?: string | null;
       recurrenceCustomRule?: string;
+      allowPreRegister?: boolean;
     },
     @Req() req: { user?: { orgId?: string; role?: string } }
   ) {
@@ -247,6 +253,7 @@ export class DisposableAttendanceController {
         recurrenceMode: { type: "string", enum: ["none", "daily", "weekly", "monthly", "custom"] },
         recurrenceEndDateISO: { type: "string", format: "date", nullable: true },
         recurrenceCustomRule: { type: "string", nullable: true },
+        allowPreRegister: { type: "boolean" },
         isArchived: { type: "boolean" }
       }
     }
@@ -277,6 +284,7 @@ export class DisposableAttendanceController {
       recurrenceMode?: "none" | "daily" | "weekly" | "monthly" | "custom";
       recurrenceEndDateISO?: string | null;
       recurrenceCustomRule?: string;
+      allowPreRegister?: boolean;
       isArchived?: boolean;
     },
     @Req() req: { user?: { orgId?: string; role?: string } }
@@ -594,7 +602,17 @@ export class DisposableAttendanceController {
     schema: {
       type: "object",
       properties: {
-        message: { type: "string", example: "Thank you for your response" }
+        message: { type: "string", example: "Check-in submitted successfully." },
+        action: {
+          type: "string",
+          enum: ["pre-registered", "already-preregistered", "checked-in"],
+          example: "checked-in"
+        },
+        status: {
+          type: "string",
+          enum: ["preregistered", "checked-in"],
+          example: "checked-in"
+        }
       }
     }
   })

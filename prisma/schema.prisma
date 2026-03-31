@@ -35,6 +35,11 @@ enum DisposableRecurrenceMode {
   custom
 }
 
+enum DisposableResponseStatus {
+  preregistered
+  checked_in
+}
+
 enum Permission {
   manage_organizations
   manage_staff
@@ -138,6 +143,7 @@ model DisposableAttendance {
   recurrenceMode        DisposableRecurrenceMode @default(none)
   recurrenceEndDateISO  String?
   recurrenceCustomRule  String                   @default("")
+  allowPreRegister      Boolean                  @default(false)
   isArchived            Boolean                  @default(false)
   responses             DisposableAttendanceResponse[]
   createdAt             DateTime                 @default(now())
@@ -153,10 +159,16 @@ model DisposableAttendanceResponse {
   attendanceId  String
   source        String               @default("public")
   submittedById String?
+  status        DisposableResponseStatus @default(checked_in)
+  emailNormalized String?
+  preRegisteredAt DateTime?
+  checkedInAt   DateTime?
   values        Json
   createdAt     DateTime             @default(now())
 
   @@index([attendanceId, createdAt])
+  @@index([attendanceId, status])
+  @@unique([attendanceId, emailNormalized])
 }
 
 model PublicHoliday {
