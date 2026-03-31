@@ -1,0 +1,15 @@
+REGISTRATION SUCCESSFUL
+
+Hi {{attendeeName}},
+
+Your registration has been recorded.
+
+Status: {{statusLabel}}
+Event: {{eventTitle}}
+Date: {{eventDateISO}}
+{{#if location}}Location: {{location}}
+{{/if}}Organization: {{organizationName}}
+
+{{nextStepMessage}}
+
+This is an automated message from Attendance.

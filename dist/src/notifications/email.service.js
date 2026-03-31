@@ -509,6 +509,30 @@ let EmailService = EmailService_1 = class EmailService {
         });
         return this.sendGenericEmail(payload.to, subject, htmlContent, textContent);
     }
+    async sendDisposableRegistrationSuccessEmail(payload) {
+        const subject = `[Attendance] Registration confirmed for ${payload.eventTitle}`;
+        const htmlContent = this.templateService.renderTemplate("disposable-registration-success.html", {
+            attendeeName: payload.attendeeName,
+            eventTitle: payload.eventTitle,
+            eventDateISO: payload.eventDateISO,
+            location: payload.location || "",
+            organizationName: payload.organizationName,
+            statusLabel: payload.statusLabel,
+            nextStepMessage: payload.nextStepMessage,
+            happenedAtISO: new Date().toISOString()
+        });
+        const textContent = this.templateService.renderTemplate("disposable-registration-success.txt", {
+            attendeeName: payload.attendeeName,
+            eventTitle: payload.eventTitle,
+            eventDateISO: payload.eventDateISO,
+            location: payload.location || "",
+            organizationName: payload.organizationName,
+            statusLabel: payload.statusLabel,
+            nextStepMessage: payload.nextStepMessage,
+            happenedAtISO: new Date().toISOString()
+        });
+        return this.sendGenericEmail(payload.to, subject, htmlContent, textContent);
+    }
 };
 exports.EmailService = EmailService;
 exports.EmailService = EmailService = EmailService_1 = __decorate([

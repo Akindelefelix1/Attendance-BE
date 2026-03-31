@@ -31,6 +31,16 @@ type StaffPasswordResetPayload = {
     resetToken: string;
     reason?: string;
 };
+type DisposableRegistrationSuccessPayload = {
+    to: string;
+    attendeeName: string;
+    eventTitle: string;
+    eventDateISO: string;
+    location?: string;
+    organizationName: string;
+    statusLabel: "Pre-registered" | "Checked in";
+    nextStepMessage: string;
+};
 export declare class EmailService {
     private templateService;
     private readonly logger;
@@ -91,6 +101,22 @@ export declare class EmailService {
         holidayDescription?: string;
         organizationName: string;
     }): Promise<{
+        readonly delivered: true;
+        readonly provider: "sendgrid";
+    } | {
+        readonly delivered: true;
+        readonly provider: "brevo-api";
+    } | {
+        readonly delivered: true;
+        readonly provider: "smtp";
+    } | {
+        readonly delivered: false;
+        readonly provider: "smtp";
+    } | {
+        readonly delivered: false;
+        readonly provider: "none";
+    }>;
+    sendDisposableRegistrationSuccessEmail(payload: DisposableRegistrationSuccessPayload): Promise<{
         readonly delivered: true;
         readonly provider: "sendgrid";
     } | {

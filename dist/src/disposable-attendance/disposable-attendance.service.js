@@ -574,6 +574,23 @@ let DisposableAttendanceService = class DisposableAttendanceService {
                         values: sanitized
                     }
                 });
+                const organization = await this.prisma.organization.findUnique({
+                    where: { id: attendance.organizationId },
+                    select: { name: true }
+                });
+                const attendeeName = sanitized["full-name"] || "Attendee";
+                void this.emailService
+                    .sendDisposableRegistrationSuccessEmail({
+                    to: normalizedEmail,
+                    attendeeName,
+                    eventTitle: attendance.title,
+                    eventDateISO: attendance.eventDateISO,
+                    location: attendance.location,
+                    organizationName: organization?.name || "Organization",
+                    statusLabel: "Pre-registered",
+                    nextStepMessage: "Please scan the event QR code again on event day to complete your check-in."
+                })
+                    .catch(() => undefined);
                 return {
                     id: created.id,
                     attendanceId: created.attendanceId,
@@ -627,6 +644,23 @@ let DisposableAttendanceService = class DisposableAttendanceService {
                     values: sanitized
                 }
             });
+            const organization = await this.prisma.organization.findUnique({
+                where: { id: attendance.organizationId },
+                select: { name: true }
+            });
+            const attendeeName = sanitized["full-name"] || "Attendee";
+            void this.emailService
+                .sendDisposableRegistrationSuccessEmail({
+                to: normalizedEmail,
+                attendeeName,
+                eventTitle: attendance.title,
+                eventDateISO: attendance.eventDateISO,
+                location: attendance.location,
+                organizationName: organization?.name || "Organization",
+                statusLabel: "Checked in",
+                nextStepMessage: "Your attendance is confirmed. See you at the event."
+            })
+                .catch(() => undefined);
             return {
                 id: created.id,
                 attendanceId: created.attendanceId,
@@ -641,16 +675,36 @@ let DisposableAttendanceService = class DisposableAttendanceService {
             };
         }
         const sanitized = this.sanitizeResponseValues(fields, values);
+        const normalizedCreatedEmail = this.extractNormalizedEmail(sanitized);
         const created = await this.prisma.disposableAttendanceResponse.create({
             data: {
                 attendanceId: attendance.id,
                 source: "public",
                 status: "checked_in",
-                emailNormalized: this.extractNormalizedEmail(sanitized) || null,
+                emailNormalized: normalizedCreatedEmail || null,
                 checkedInAt: new Date(),
                 values: sanitized
             }
         });
+        if (normalizedCreatedEmail) {
+            const organization = await this.prisma.organization.findUnique({
+                where: { id: attendance.organizationId },
+                select: { name: true }
+            });
+            const attendeeName = sanitized["full-name"] || "Attendee";
+            void this.emailService
+                .sendDisposableRegistrationSuccessEmail({
+                to: normalizedCreatedEmail,
+                attendeeName,
+                eventTitle: attendance.title,
+                eventDateISO: attendance.eventDateISO,
+                location: attendance.location,
+                organizationName: organization?.name || "Organization",
+                statusLabel: "Checked in",
+                nextStepMessage: "Your attendance is confirmed. See you at the event."
+            })
+                .catch(() => undefined);
+        }
         return {
             id: created.id,
             attendanceId: created.attendanceId,

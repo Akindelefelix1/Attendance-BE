@@ -39,6 +39,17 @@ type StaffPasswordResetPayload = {
   reason?: string;
 };
 
+type DisposableRegistrationSuccessPayload = {
+  to: string;
+  attendeeName: string;
+  eventTitle: string;
+  eventDateISO: string;
+  location?: string;
+  organizationName: string;
+  statusLabel: "Pre-registered" | "Checked in";
+  nextStepMessage: string;
+};
+
 type EmailDeliveryResult = {
   verifyUrl: string;
   delivered: boolean;
@@ -746,5 +757,37 @@ export class EmailService {
       htmlContent,
       textContent
     );
+  }
+
+  async sendDisposableRegistrationSuccessEmail(payload: DisposableRegistrationSuccessPayload) {
+    const subject = `[Attendance] Registration confirmed for ${payload.eventTitle}`;
+    const htmlContent = this.templateService.renderTemplate(
+      "disposable-registration-success.html",
+      {
+        attendeeName: payload.attendeeName,
+        eventTitle: payload.eventTitle,
+        eventDateISO: payload.eventDateISO,
+        location: payload.location || "",
+        organizationName: payload.organizationName,
+        statusLabel: payload.statusLabel,
+        nextStepMessage: payload.nextStepMessage,
+        happenedAtISO: new Date().toISOString()
+      }
+    );
+    const textContent = this.templateService.renderTemplate(
+      "disposable-registration-success.txt",
+      {
+        attendeeName: payload.attendeeName,
+        eventTitle: payload.eventTitle,
+        eventDateISO: payload.eventDateISO,
+        location: payload.location || "",
+        organizationName: payload.organizationName,
+        statusLabel: payload.statusLabel,
+        nextStepMessage: payload.nextStepMessage,
+        happenedAtISO: new Date().toISOString()
+      }
+    );
+
+    return this.sendGenericEmail(payload.to, subject, htmlContent, textContent);
   }
 }
