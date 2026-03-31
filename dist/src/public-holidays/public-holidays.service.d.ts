@@ -1,8 +1,12 @@
 import { PrismaService } from "../prisma/prisma.service";
 import { PublicHoliday } from "@prisma/client";
+import { EmailService } from "../notifications/email.service";
+import { TemplateService } from "../notifications/template.service";
 export declare class PublicHolidaysService {
     private readonly prisma;
-    constructor(prisma: PrismaService);
+    private readonly emailService;
+    private readonly templateService;
+    constructor(prisma: PrismaService, emailService: EmailService, templateService: TemplateService);
     private isDuplicateKeyError;
     private isForeignKeyError;
     private isRecordNotFoundError;
@@ -29,4 +33,8 @@ export declare class PublicHolidaysService {
     isPublicHoliday(orgId: string, dateISO: string): Promise<boolean>;
     private expandRRuleForRange;
     private matchesRRule;
+    notifyStaff(orgId: string, holidayId: string, sendMode: "instant" | "scheduled", scheduledAt?: string): Promise<{
+        message: string;
+        notifiedCount: number;
+    }>;
 }

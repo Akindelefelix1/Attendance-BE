@@ -106,6 +106,17 @@ let PublicHolidaysController = class PublicHolidaysController {
         }
         return this.publicHolidaysService.delete(orgId, id);
     }
+    async notifyStaff(orgId, id, body, req) {
+        this.assertOrgScope(orgId, req.user);
+        const sendMode = body.sendMode;
+        if (!sendMode || !["instant", "scheduled"].includes(sendMode)) {
+            throw new common_1.BadRequestException("sendMode must be either 'instant' or 'scheduled'");
+        }
+        if (sendMode === "scheduled" && !body.scheduledAt) {
+            throw new common_1.BadRequestException("scheduledAt is required when sendMode is 'scheduled'");
+        }
+        return this.publicHolidaysService.notifyStaff(orgId, id, sendMode, body.scheduledAt);
+    }
 };
 exports.PublicHolidaysController = PublicHolidaysController;
 __decorate([
@@ -325,6 +336,66 @@ __decorate([
     __metadata("design:paramtypes", [String, String, Object]),
     __metadata("design:returntype", Promise)
 ], PublicHolidaysController.prototype, "delete", null);
+__decorate([
+    (0, common_1.Post)(":id/notify"),
+    (0, swagger_1.ApiOperation)({
+        summary: "Notify staff about a public holiday",
+        description: "Send email notification to all registered staff members about a holiday"
+    }),
+    (0, swagger_1.ApiParam)({
+        name: "orgId",
+        type: String,
+        description: "The organization ID",
+        example: "org_123abc"
+    }),
+    (0, swagger_1.ApiParam)({
+        name: "id",
+        type: String,
+        description: "The public holiday ID",
+        example: "holiday_123"
+    }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: "object",
+            required: ["sendMode"],
+            properties: {
+                sendMode: {
+                    type: "string",
+                    enum: ["instant", "scheduled"],
+                    description: "Whether to send immediately or schedule for later",
+                    example: "instant"
+                },
+                scheduledAt: {
+                    type: "string",
+                    format: "date-time",
+                    nullable: true,
+                    description: "ISO 8601 datetime for scheduled sends",
+                    example: "2026-04-15T10:00:00Z"
+                }
+            }
+        }
+    }),
+    (0, swagger_1.ApiCreatedResponse)({
+        description: "Staff notification sent successfully",
+        schema: {
+            type: "object",
+            properties: {
+                message: { type: "string", example: "Notification sent to 10 staff members" },
+                notifiedCount: { type: "number", example: 10 }
+            }
+        }
+    }),
+    (0, swagger_1.ApiForbiddenResponse)({ description: "Authorization failed - user cannot access this organization" }),
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
+    (0, permissions_decorator_1.Permissions)("manage_settings"),
+    __param(0, (0, common_1.Param)("orgId")),
+    __param(1, (0, common_1.Param)("id")),
+    __param(2, (0, common_1.Body)()),
+    __param(3, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object, Object]),
+    __metadata("design:returntype", Promise)
+], PublicHolidaysController.prototype, "notifyStaff", null);
 exports.PublicHolidaysController = PublicHolidaysController = __decorate([
     (0, swagger_1.ApiTags)("Public Holidays"),
     (0, swagger_1.ApiCookieAuth)("cookieAuth"),

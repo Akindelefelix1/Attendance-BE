@@ -357,5 +357,76 @@ export class PublicHolidaysController {
 
     return this.publicHolidaysService.delete(orgId, id);
   }
+
+  @Post(":id/notify")
+  @ApiOperation({
+    summary: "Notify staff about a public holiday",
+    description: "Send email notification to all registered staff members about a holiday"
+  })
+  @ApiParam({
+    name: "orgId",
+    type: String,
+    description: "The organization ID",
+    example: "org_123abc"
+  })
+  @ApiParam({
+    name: "id",
+    type: String,
+    description: "The public holiday ID",
+    example: "holiday_123"
+  })
+  @ApiBody({
+    schema: {
+      type: "object",
+      required: ["sendMode"],
+      properties: {
+        sendMode: {
+          type: "string",
+          enum: ["instant", "scheduled"],
+          description: "Whether to send immediately or schedule for later",
+          example: "instant"
+        },
+        scheduledAt: {
+          type: "string",
+          format: "date-time",
+          nullable: true,
+          description: "ISO 8601 datetime for scheduled sends",
+          example: "2026-04-15T10:00:00Z"
+        }
+      }
+    }
+  })
+  @ApiCreatedResponse({
+    description: "Staff notification sent successfully",
+    schema: {
+      type: "object",
+      properties: {
+        message: { type: "string", example: "Notification sent to 10 staff members" },
+        notifiedCount: { type: "number", example: 10 }
+      }
+    }
+  })
+  @ApiForbiddenResponse({ description: "Authorization failed - user cannot access this organization" })
+  @UseGuards(AuthGuard("jwt"), PermissionsGuard)
+  @Permissions("manage_settings")
+  async notifyStaff(
+    @Param("orgId") orgId: string,
+    @Param("id") id: string,
+    @Body() body: { sendMode?: string; scheduledAt?: string },
+    @Req() req: any
+  ) {
+    this.assertOrgScope(orgId, req.user);
+
+    const sendMode = body.sendMode as "instant" | "scheduled" | undefined;
+    if (!sendMode || !["instant", "scheduled"].includes(sendMode)) {
+      throw new BadRequestException("sendMode must be either 'instant' or 'scheduled'");
+    }
+
+    if (sendMode === "scheduled" && !body.scheduledAt) {
+      throw new BadRequestException("scheduledAt is required when sendMode is 'scheduled'");
+    }
+
+    return this.publicHolidaysService.notifyStaff(orgId, id, sendMode, body.scheduledAt);
+  }
 }
 

@@ -1,0 +1,16 @@
+HOLIDAY NOTIFICATION
+
+Hello {{staffName}},
+
+This is a notification that {{holidayName}} has been added as a public holiday on {{holidayDate}}. 
+You will not be marked absent on this day.
+
+{{#if holidayType}}This is a {{holidayType}} holiday.{{/if}}
+
+{{#if holidayDescription}}Description: {{holidayDescription}}{{/if}}
+
+If you have any questions about this holiday, please contact your organization's administrator.
+
+---
+{{organizationName}}
+This is an automated notification from the Attendance System.

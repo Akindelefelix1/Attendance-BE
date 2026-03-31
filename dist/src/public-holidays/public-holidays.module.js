@@ -11,12 +11,13 @@ const common_1 = require("@nestjs/common");
 const public_holidays_service_1 = require("./public-holidays.service");
 const public_holidays_controller_1 = require("./public-holidays.controller");
 const prisma_module_1 = require("../prisma/prisma.module");
+const notifications_module_1 = require("../notifications/notifications.module");
 let PublicHolidaysModule = class PublicHolidaysModule {
 };
 exports.PublicHolidaysModule = PublicHolidaysModule;
 exports.PublicHolidaysModule = PublicHolidaysModule = __decorate([
     (0, common_1.Module)({
-        imports: [prisma_module_1.PrismaModule],
+        imports: [prisma_module_1.PrismaModule, notifications_module_1.NotificationsModule],
         providers: [public_holidays_service_1.PublicHolidaysService],
         controllers: [public_holidays_controller_1.PublicHolidaysController],
         exports: [public_holidays_service_1.PublicHolidaysService]

@@ -82,5 +82,29 @@ export declare class EmailService {
         delivered: boolean;
         provider: "sendgrid" | "brevo-api" | "smtp" | "none";
     }>;
+    sendHolidayNotificationEmail(payload: {
+        to: string;
+        staffName: string;
+        holidayName: string;
+        holidayDate: string;
+        holidayType: string;
+        holidayDescription?: string;
+        organizationName: string;
+    }): Promise<{
+        readonly delivered: true;
+        readonly provider: "sendgrid";
+    } | {
+        readonly delivered: true;
+        readonly provider: "brevo-api";
+    } | {
+        readonly delivered: true;
+        readonly provider: "smtp";
+    } | {
+        readonly delivered: false;
+        readonly provider: "smtp";
+    } | {
+        readonly delivered: false;
+        readonly provider: "none";
+    }>;
 }
 export {};

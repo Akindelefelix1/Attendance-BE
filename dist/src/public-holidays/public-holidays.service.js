@@ -12,10 +12,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PublicHolidaysService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
+const email_service_1 = require("../notifications/email.service");
+const template_service_1 = require("../notifications/template.service");
 let PublicHolidaysService = class PublicHolidaysService {
     prisma;
-    constructor(prisma) {
+    emailService;
+    templateService;
+    constructor(prisma, emailService, templateService) {
         this.prisma = prisma;
+        this.emailService = emailService;
+        this.templateService = templateService;
     }
     isDuplicateKeyError(error) {
         return (!!error &&
@@ -209,10 +215,83 @@ let PublicHolidaysService = class PublicHolidaysService {
             return false;
         }
     }
+    async notifyStaff(orgId, holidayId, sendMode, scheduledAt) {
+        try {
+            const holiday = await this.prisma.publicHoliday.findFirst({
+                where: { id: holidayId, organizationId: orgId }
+            });
+            if (!holiday) {
+                throw new common_1.NotFoundException("Holiday not found");
+            }
+            const organization = await this.prisma.organization.findUnique({
+                where: { id: orgId }
+            });
+            if (!organization) {
+                throw new common_1.NotFoundException("Organization not found");
+            }
+            const staff = await this.prisma.staffMember.findMany({
+                where: { organizationId: orgId },
+                select: { id: true, email: true, fullName: true }
+            });
+            if (staff.length === 0) {
+                return { message: "No staff members to notify", notifiedCount: 0 };
+            }
+            const holidayDate = new Date(holiday.dateISO);
+            const formattedDate = holidayDate.toLocaleDateString("en-US", {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric"
+            });
+            const holidayType = holiday.isRecurring ? "Recurring" : "One-time";
+            const emailPromises = staff.map(async (member) => {
+                try {
+                    if (sendMode === "instant") {
+                        await this.emailService.sendHolidayNotificationEmail({
+                            to: member.email,
+                            staffName: member.fullName,
+                            holidayName: holiday.name,
+                            holidayDate: formattedDate,
+                            holidayType: holidayType,
+                            holidayDescription: holiday.description || "",
+                            organizationName: organization.name
+                        });
+                    }
+                    else if (sendMode === "scheduled" && scheduledAt) {
+                        await this.emailService.sendHolidayNotificationEmail({
+                            to: member.email,
+                            staffName: member.fullName,
+                            holidayName: holiday.name,
+                            holidayDate: formattedDate,
+                            holidayType: holidayType,
+                            holidayDescription: holiday.description || "",
+                            organizationName: organization.name
+                        });
+                    }
+                }
+                catch (error) {
+                    console.error(`Failed to send email to ${member.email}:`, error);
+                }
+            });
+            await Promise.all(emailPromises);
+            return {
+                message: `Notification sent to ${staff.length} staff members`,
+                notifiedCount: staff.length
+            };
+        }
+        catch (error) {
+            if (error instanceof common_1.NotFoundException) {
+                throw error;
+            }
+            throw new common_1.InternalServerErrorException("Failed to notify staff about holiday");
+        }
+    }
 };
 exports.PublicHolidaysService = PublicHolidaysService;
 exports.PublicHolidaysService = PublicHolidaysService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        email_service_1.EmailService,
+        template_service_1.TemplateService])
 ], PublicHolidaysService);
 //# sourceMappingURL=public-holidays.service.js.map

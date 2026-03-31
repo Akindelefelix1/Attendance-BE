@@ -68,4 +68,11 @@ export declare class PublicHolidaysController {
         recurrencePattern: string | null;
         affectsAllStaff: boolean;
     }>;
+    notifyStaff(orgId: string, id: string, body: {
+        sendMode?: string;
+        scheduledAt?: string;
+    }, req: any): Promise<{
+        message: string;
+        notifiedCount: number;
+    }>;
 }

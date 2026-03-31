@@ -487,6 +487,28 @@ let EmailService = EmailService_1 = class EmailService {
             provider: delivery.provider
         };
     }
+    async sendHolidayNotificationEmail(payload) {
+        const subject = `[Attendance] Holiday Notification: ${payload.holidayName}`;
+        const htmlContent = this.templateService.renderTemplate("holiday-notification.html", {
+            staffName: payload.staffName,
+            holidayName: payload.holidayName,
+            holidayDate: payload.holidayDate,
+            holidayType: payload.holidayType,
+            holidayDescription: payload.holidayDescription || "",
+            organizationName: payload.organizationName,
+            happenedAtISO: new Date().toISOString()
+        });
+        const textContent = this.templateService.renderTemplate("holiday-notification.txt", {
+            staffName: payload.staffName,
+            holidayName: payload.holidayName,
+            holidayDate: payload.holidayDate,
+            holidayType: payload.holidayType,
+            holidayDescription: payload.holidayDescription || "",
+            organizationName: payload.organizationName,
+            happenedAtISO: new Date().toISOString()
+        });
+        return this.sendGenericEmail(payload.to, subject, htmlContent, textContent);
+    }
 };
 exports.EmailService = EmailService;
 exports.EmailService = EmailService = EmailService_1 = __decorate([

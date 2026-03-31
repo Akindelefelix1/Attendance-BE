@@ -16,7 +16,7 @@ exports.NotificationsModule = NotificationsModule;
 exports.NotificationsModule = NotificationsModule = __decorate([
     (0, common_1.Module)({
         providers: [email_service_1.EmailService, template_service_1.TemplateService],
-        exports: [email_service_1.EmailService]
+        exports: [email_service_1.EmailService, template_service_1.TemplateService]
     })
 ], NotificationsModule);
 //# sourceMappingURL=notifications.module.js.map

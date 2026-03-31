@@ -4,6 +4,6 @@ import { TemplateService } from "./template.service";
 
 @Module({
   providers: [EmailService, TemplateService],
-  exports: [EmailService]
+  exports: [EmailService, TemplateService]
 })
 export class NotificationsModule {}

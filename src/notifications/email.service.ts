@@ -710,4 +710,41 @@ export class EmailService {
       provider: delivery.provider
     };
   }
+
+  async sendHolidayNotificationEmail(payload: {
+    to: string;
+    staffName: string;
+    holidayName: string;
+    holidayDate: string;
+    holidayType: string;
+    holidayDescription?: string;
+    organizationName: string;
+  }) {
+    const subject = `[Attendance] Holiday Notification: ${payload.holidayName}`;
+    const htmlContent = this.templateService.renderTemplate("holiday-notification.html", {
+      staffName: payload.staffName,
+      holidayName: payload.holidayName,
+      holidayDate: payload.holidayDate,
+      holidayType: payload.holidayType,
+      holidayDescription: payload.holidayDescription || "",
+      organizationName: payload.organizationName,
+      happenedAtISO: new Date().toISOString()
+    });
+    const textContent = this.templateService.renderTemplate("holiday-notification.txt", {
+      staffName: payload.staffName,
+      holidayName: payload.holidayName,
+      holidayDate: payload.holidayDate,
+      holidayType: payload.holidayType,
+      holidayDescription: payload.holidayDescription || "",
+      organizationName: payload.organizationName,
+      happenedAtISO: new Date().toISOString()
+    });
+
+    return this.sendGenericEmail(
+      payload.to,
+      subject,
+      htmlContent,
+      textContent
+    );
+  }
 }

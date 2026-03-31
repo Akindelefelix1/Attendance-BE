@@ -6,10 +6,16 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { PublicHoliday } from "@prisma/client";
+import { EmailService } from "../notifications/email.service";
+import { TemplateService } from "../notifications/template.service";
 
 @Injectable()
 export class PublicHolidaysService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailService: EmailService,
+    private readonly templateService: TemplateService
+  ) {}
 
   private isDuplicateKeyError(error: unknown) {
     return (
@@ -286,6 +292,102 @@ export class PublicHolidaysService {
     } catch (error) {
       console.warn("Failed to match RRULE:", rrule, error);
       return false;
+    }
+  }
+
+  /**
+   * Notify all staff members about a holiday
+   */
+  async notifyStaff(
+    orgId: string,
+    holidayId: string,
+    sendMode: "instant" | "scheduled",
+    scheduledAt?: string
+  ): Promise<{ message: string; notifiedCount: number }> {
+    try {
+      // Get the holiday
+      const holiday = await this.prisma.publicHoliday.findFirst({
+        where: { id: holidayId, organizationId: orgId }
+      });
+
+      if (!holiday) {
+        throw new NotFoundException("Holiday not found");
+      }
+
+      // Get the organization
+      const organization = await this.prisma.organization.findUnique({
+        where: { id: orgId }
+      });
+
+      if (!organization) {
+        throw new NotFoundException("Organization not found");
+      }
+
+      // Get all staff members
+      const staff = await this.prisma.staffMember.findMany({
+        where: { organizationId: orgId },
+        select: { id: true, email: true, fullName: true }
+      });
+
+      if (staff.length === 0) {
+        return { message: "No staff members to notify", notifiedCount: 0 };
+      }
+
+      // Format holiday info
+      const holidayDate = new Date(holiday.dateISO);
+      const formattedDate = holidayDate.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+      });
+
+      const holidayType = holiday.isRecurring ? "Recurring" : "One-time";
+
+      // Prepare email content for each staff
+      const emailPromises = staff.map(async (member) => {
+        try {
+          // Send email based on mode
+          if (sendMode === "instant") {
+            await this.emailService.sendHolidayNotificationEmail({
+              to: member.email,
+              staffName: member.fullName,
+              holidayName: holiday.name,
+              holidayDate: formattedDate,
+              holidayType: holidayType,
+              holidayDescription: holiday.description || "",
+              organizationName: organization.name
+            });
+          } else if (sendMode === "scheduled" && scheduledAt) {
+            // TODO: Implement job scheduler (e.g., Bull Queue, node-schedule)
+            // For now, send immediately
+            await this.emailService.sendHolidayNotificationEmail({
+              to: member.email,
+              staffName: member.fullName,
+              holidayName: holiday.name,
+              holidayDate: formattedDate,
+              holidayType: holidayType,
+              holidayDescription: holiday.description || "",
+              organizationName: organization.name
+            });
+          }
+        } catch (error) {
+          console.error(`Failed to send email to ${member.email}:`, error);
+          // Continue with other staff even if one fails
+        }
+      });
+
+      await Promise.all(emailPromises);
+
+      return {
+        message: `Notification sent to ${staff.length} staff members`,
+        notifiedCount: staff.length
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException("Failed to notify staff about holiday");
     }
   }
 }
