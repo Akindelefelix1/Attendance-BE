@@ -19,6 +19,7 @@ const auth_module_1 = require("./auth/auth.module");
 const analytics_module_1 = require("./analytics/analytics.module");
 const disposable_attendance_module_1 = require("./disposable-attendance/disposable-attendance.module");
 const notifications_module_1 = require("./notifications/notifications.module");
+const public_holidays_module_1 = require("./public-holidays/public-holidays.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -33,7 +34,8 @@ exports.AppModule = AppModule = __decorate([
             settings_module_1.SettingsModule,
             analytics_module_1.AnalyticsModule,
             disposable_attendance_module_1.DisposableAttendanceModule,
-            notifications_module_1.NotificationsModule
+            notifications_module_1.NotificationsModule,
+            public_holidays_module_1.PublicHolidaysModule
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService]

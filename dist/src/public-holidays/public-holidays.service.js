@@ -1,0 +1,153 @@
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PublicHolidaysService = void 0;
+const common_1 = require("@nestjs/common");
+const prisma_service_1 = require("../prisma/prisma.service");
+let PublicHolidaysService = class PublicHolidaysService {
+    prisma;
+    constructor(prisma) {
+        this.prisma = prisma;
+    }
+    async create(orgId, data) {
+        return this.prisma.publicHoliday.create({
+            data: {
+                organizationId: orgId,
+                name: data.name,
+                dateISO: data.dateISO,
+                isRecurring: data.isRecurring ?? false,
+                recurrencePattern: data.recurrencePattern,
+                description: data.description ?? "",
+                affectsAllStaff: data.affectsAllStaff ?? true
+            }
+        });
+    }
+    async findAll(orgId) {
+        return this.prisma.publicHoliday.findMany({
+            where: { organizationId: orgId },
+            orderBy: { dateISO: "asc" }
+        });
+    }
+    async findOne(orgId, id) {
+        return this.prisma.publicHoliday.findFirst({
+            where: { id, organizationId: orgId }
+        });
+    }
+    async update(orgId, id, data) {
+        return this.prisma.publicHoliday.update({
+            where: { id },
+            data: {
+                ...data
+            }
+        });
+    }
+    async delete(orgId, id) {
+        return this.prisma.publicHoliday.delete({
+            where: { id }
+        });
+    }
+    async getHolidayDatesForRange(orgId, startDateISO, endDateISO) {
+        const allHolidays = await this.prisma.publicHoliday.findMany({
+            where: {
+                organizationId: orgId,
+                affectsAllStaff: true
+            }
+        });
+        const holidaySet = new Set();
+        const staticHolidays = allHolidays.filter((h) => !h.isRecurring);
+        staticHolidays.forEach((holiday) => {
+            if (holiday.dateISO >= startDateISO && holiday.dateISO <= endDateISO) {
+                holidaySet.add(holiday.dateISO);
+            }
+        });
+        const recurringHolidays = allHolidays.filter((h) => h.isRecurring);
+        recurringHolidays.forEach((holiday) => {
+            const expandedDates = this.expandRRuleForRange(holiday.recurrencePattern || "", startDateISO, endDateISO);
+            expandedDates.forEach((date) => holidaySet.add(date));
+        });
+        return holidaySet;
+    }
+    async isPublicHoliday(orgId, dateISO) {
+        const staticHoliday = await this.prisma.publicHoliday.findFirst({
+            where: {
+                organizationId: orgId,
+                dateISO,
+                isRecurring: false,
+                affectsAllStaff: true
+            }
+        });
+        if (staticHoliday)
+            return true;
+        const recurringHolidays = await this.prisma.publicHoliday.findMany({
+            where: {
+                organizationId: orgId,
+                isRecurring: true,
+                affectsAllStaff: true
+            }
+        });
+        return recurringHolidays.some((holiday) => {
+            return this.matchesRRule(dateISO, holiday.recurrencePattern || "");
+        });
+    }
+    expandRRuleForRange(rrule, startISO, endISO) {
+        if (!rrule)
+            return [];
+        const dates = [];
+        try {
+            const [startYear, startMonth, startDay] = startISO.split("-").map(Number);
+            const [endYear, endMonth, endDay] = endISO.split("-").map(Number);
+            const freqMatch = rrule.match(/FREQ=(\w+)/);
+            const byMonthDayMatch = rrule.match(/BYMONTHDAY=(\d+)/);
+            const byMonthMatch = rrule.match(/BYMONTH=(\d+)/);
+            if (!freqMatch || freqMatch[1] !== "YEARLY")
+                return [];
+            const month = byMonthMatch ? parseInt(byMonthMatch[1], 10) : null;
+            const day = byMonthDayMatch ? parseInt(byMonthDayMatch[1], 10) : null;
+            if (!month || !day)
+                return [];
+            for (let year = startYear; year <= endYear; year++) {
+                const dateISO = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+                if (dateISO >= startISO && dateISO <= endISO) {
+                    dates.push(dateISO);
+                }
+            }
+        }
+        catch (error) {
+            console.warn("Failed to parse RRULE:", rrule, error);
+        }
+        return dates;
+    }
+    matchesRRule(dateISO, rrule) {
+        if (!rrule)
+            return false;
+        try {
+            const [year, month, day] = dateISO.split("-").map(Number);
+            const byMonthDayMatch = rrule.match(/BYMONTHDAY=(\d+)/);
+            const byMonthMatch = rrule.match(/BYMONTH=(\d+)/);
+            const targetMonth = byMonthMatch ? parseInt(byMonthMatch[1], 10) : null;
+            const targetDay = byMonthDayMatch ? parseInt(byMonthDayMatch[1], 10) : null;
+            if (targetMonth && targetDay) {
+                return month === targetMonth && day === targetDay;
+            }
+            return false;
+        }
+        catch (error) {
+            console.warn("Failed to match RRULE:", rrule, error);
+            return false;
+        }
+    }
+};
+exports.PublicHolidaysService = PublicHolidaysService;
+exports.PublicHolidaysService = PublicHolidaysService = __decorate([
+    (0, common_1.Injectable)(),
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+], PublicHolidaysService);
+//# sourceMappingURL=public-holidays.service.js.map

@@ -10,6 +10,7 @@ import { AuthModule } from "./auth/auth.module";
 import { AnalyticsModule } from "./analytics/analytics.module";
 import { DisposableAttendanceModule } from "./disposable-attendance/disposable-attendance.module";
 import { NotificationsModule } from "./notifications/notifications.module";
+import { PublicHolidaysModule } from "./public-holidays/public-holidays.module";
 
 @Module({
   imports: [
@@ -21,7 +22,8 @@ import { NotificationsModule } from "./notifications/notifications.module";
     SettingsModule,
     AnalyticsModule,
     DisposableAttendanceModule,
-    NotificationsModule
+    NotificationsModule,
+    PublicHolidaysModule
   ],
   controllers: [AppController],
   providers: [AppService]

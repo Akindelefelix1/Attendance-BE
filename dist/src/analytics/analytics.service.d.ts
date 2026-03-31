@@ -1,9 +1,11 @@
 import { PrismaService } from "../prisma/prisma.service";
+import { PublicHolidaysService } from "../public-holidays/public-holidays.service";
 type RangeKey = "week" | "month";
 type FilterKey = "all" | "late" | "early" | "absent";
 export declare class AnalyticsService {
     private readonly prisma;
-    constructor(prisma: PrismaService);
+    private readonly publicHolidaysService;
+    constructor(prisma: PrismaService, publicHolidaysService: PublicHolidaysService);
     getAnalytics(orgId: string, range: RangeKey, filter: FilterKey): Promise<{
         rangeStart: null;
         rangeEnd: null;

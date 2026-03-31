@@ -63,6 +63,7 @@ model Organization {
   staff                      StaffMember[]
   attendanceRecords          AttendanceRecord[]
   disposableAttendances      DisposableAttendance[]
+  publicHolidays             PublicHoliday[]
   admins                     AdminUser[]
   createdAt                  DateTime              @default(now())
   updatedAt                  DateTime              @updatedAt
@@ -156,4 +157,21 @@ model DisposableAttendanceResponse {
   createdAt     DateTime             @default(now())
 
   @@index([attendanceId, createdAt])
+}
+
+model PublicHoliday {
+  id                String       @id @default(cuid())
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId    String
+  name              String
+  dateISO           String
+  isRecurring       Boolean      @default(false)
+  recurrencePattern String?
+  description       String       @default("")
+  affectsAllStaff   Boolean      @default(true)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([organizationId, dateISO])
+  @@unique([organizationId, dateISO])
 }

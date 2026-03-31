@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { PublicHolidaysService } from "../public-holidays/public-holidays.service";
 
 type RangeKey = "week" | "month";
 type FilterKey = "all" | "late" | "early" | "absent";
@@ -118,7 +119,10 @@ const getMinutesEarly = (
 
 @Injectable()
 export class AnalyticsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly publicHolidaysService: PublicHolidaysService
+  ) {}
 
   async getAnalytics(orgId: string, range: RangeKey, filter: FilterKey) {
     const organization = await this.prisma.organization.findUnique({
@@ -158,6 +162,16 @@ export class AnalyticsService {
     const workingDays = organization.workingDays ?? [1, 2, 3, 4, 5];
     const includeFuture = organization.analyticsIncludeFutureDays ?? false;
     const dateRange = getDateRange(range, workingDays, includeFuture);
+    
+    // Get public holidays for this date range
+    const publicHolidaySet = dateRange.length
+      ? await this.publicHolidaysService.getHolidayDatesForRange(
+          orgId,
+          dateRange[0],
+          dateRange[dateRange.length - 1]
+        )
+      : new Set<string>();
+    
     const records = dateRange.length
       ? await this.prisma.attendanceRecord.findMany({
           where: {
@@ -217,6 +231,10 @@ export class AnalyticsService {
         const record = recordMap.get(`${staff.id}-${dateISO}`);
         const trend = dailyTrendMap.get(dateISO);
         if (!record?.signInAt) {
+          // Skip if this is a public holiday
+          if (publicHolidaySet.has(dateISO)) {
+            return;
+          }
           absentCount += 1;
           currentAbsenceStreak += 1;
           currentAttendanceStreak = 0;

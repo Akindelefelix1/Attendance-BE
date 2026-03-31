@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AnalyticsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
+const public_holidays_service_1 = require("../public-holidays/public-holidays.service");
 const toLocalDateISO = (date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -105,8 +106,10 @@ const getMinutesEarly = (signOutAt, earlyCheckoutBeforeTime, dateISO) => {
 };
 let AnalyticsService = class AnalyticsService {
     prisma;
-    constructor(prisma) {
+    publicHolidaysService;
+    constructor(prisma, publicHolidaysService) {
         this.prisma = prisma;
+        this.publicHolidaysService = publicHolidaysService;
     }
     async getAnalytics(orgId, range, filter) {
         const organization = await this.prisma.organization.findUnique({
@@ -146,6 +149,9 @@ let AnalyticsService = class AnalyticsService {
         const workingDays = organization.workingDays ?? [1, 2, 3, 4, 5];
         const includeFuture = organization.analyticsIncludeFutureDays ?? false;
         const dateRange = getDateRange(range, workingDays, includeFuture);
+        const publicHolidaySet = dateRange.length
+            ? await this.publicHolidaysService.getHolidayDatesForRange(orgId, dateRange[0], dateRange[dateRange.length - 1])
+            : new Set();
         const records = dateRange.length
             ? await this.prisma.attendanceRecord.findMany({
                 where: {
@@ -191,6 +197,9 @@ let AnalyticsService = class AnalyticsService {
                 const record = recordMap.get(`${staff.id}-${dateISO}`);
                 const trend = dailyTrendMap.get(dateISO);
                 if (!record?.signInAt) {
+                    if (publicHolidaySet.has(dateISO)) {
+                        return;
+                    }
                     absentCount += 1;
                     currentAbsenceStreak += 1;
                     currentAttendanceStreak = 0;
@@ -400,6 +409,7 @@ let AnalyticsService = class AnalyticsService {
 exports.AnalyticsService = AnalyticsService;
 exports.AnalyticsService = AnalyticsService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        public_holidays_service_1.PublicHolidaysService])
 ], AnalyticsService);
 //# sourceMappingURL=analytics.service.js.map
