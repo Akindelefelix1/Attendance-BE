@@ -99,6 +99,15 @@ let DisposableAttendanceService = class DisposableAttendanceService {
         }
         return output;
     }
+    extractNormalizedEmail(values) {
+        const raw = values.email;
+        if (typeof raw !== "string")
+            return "";
+        return raw.trim().toLowerCase();
+    }
+    todayISO() {
+        return new Date().toISOString().slice(0, 10);
+    }
     toPublicId() {
         return (0, crypto_1.randomBytes)(16).toString("hex");
     }
@@ -120,6 +129,7 @@ let DisposableAttendanceService = class DisposableAttendanceService {
             recurrenceMode: item.recurrenceMode,
             recurrenceEndDateISO: item.recurrenceEndDateISO,
             recurrenceCustomRule: item.recurrenceCustomRule,
+            allowPreRegister: item.allowPreRegister,
             isArchived: item.isArchived,
             createdAtISO: item.createdAt.toISOString(),
             updatedAtISO: item.updatedAt.toISOString()
@@ -134,6 +144,9 @@ let DisposableAttendanceService = class DisposableAttendanceService {
         }
         this.validateFields(payload.fields);
         this.validateRecurring(payload);
+        if (payload.allowPreRegister && !payload.fields.some((field) => field.id === "email")) {
+            throw new common_1.BadRequestException("Email field is required when pre-register is enabled");
+        }
         const organization = await this.prisma.organization.findUnique({
             where: { id: payload.orgId },
             select: { id: true, name: true, planTier: true, adminEmails: true }
@@ -164,7 +177,8 @@ let DisposableAttendanceService = class DisposableAttendanceService {
                     : null,
                 recurrenceCustomRule: payload.isRecurring && payload.recurrenceMode === "custom"
                     ? payload.recurrenceCustomRule?.trim() ?? ""
-                    : ""
+                    : "",
+                allowPreRegister: payload.allowPreRegister ?? false
             }
         });
         void this.emailService
@@ -197,6 +211,7 @@ let DisposableAttendanceService = class DisposableAttendanceService {
             recurrenceMode: created.recurrenceMode,
             recurrenceEndDateISO: created.recurrenceEndDateISO,
             recurrenceCustomRule: created.recurrenceCustomRule,
+            allowPreRegister: created.allowPreRegister,
             isArchived: created.isArchived,
             createdAtISO: created.createdAt.toISOString(),
             updatedAtISO: created.updatedAt.toISOString()
@@ -209,6 +224,11 @@ let DisposableAttendanceService = class DisposableAttendanceService {
         }
         if (updates.fields) {
             this.validateFields(updates.fields);
+        }
+        const nextAllowPreRegister = updates.allowPreRegister ?? existing.allowPreRegister;
+        const nextFields = updates.fields ?? this.asFieldArray(existing.fields);
+        if (nextAllowPreRegister && !nextFields.some((field) => field.id === "email")) {
+            throw new common_1.BadRequestException("Email field is required when pre-register is enabled");
         }
         this.validateRecurring({
             isRecurring: updates.isRecurring ?? existing.isRecurring,
@@ -232,6 +252,7 @@ let DisposableAttendanceService = class DisposableAttendanceService {
                 recurrenceCustomRule: updates.recurrenceCustomRule !== undefined
                     ? updates.recurrenceCustomRule.trim()
                     : undefined,
+                allowPreRegister: updates.allowPreRegister,
                 isArchived: updates.isArchived
             }
         });
@@ -271,6 +292,7 @@ let DisposableAttendanceService = class DisposableAttendanceService {
             recurrenceMode: next.recurrenceMode,
             recurrenceEndDateISO: next.recurrenceEndDateISO,
             recurrenceCustomRule: next.recurrenceCustomRule,
+            allowPreRegister: next.allowPreRegister,
             isArchived: next.isArchived,
             createdAtISO: next.createdAt.toISOString(),
             updatedAtISO: next.updatedAt.toISOString()
@@ -319,6 +341,9 @@ let DisposableAttendanceService = class DisposableAttendanceService {
             attendanceId: item.attendanceId,
             source: item.source,
             submittedById: item.submittedById,
+            status: item.status === "checked_in" ? "checked-in" : "preregistered",
+            preRegisteredAtISO: item.preRegisteredAt?.toISOString() ?? null,
+            checkedInAtISO: item.checkedInAt?.toISOString() ?? null,
             submittedAtISO: item.createdAt.toISOString(),
             values: (item.values ?? {})
         }));
@@ -330,6 +355,9 @@ let DisposableAttendanceService = class DisposableAttendanceService {
         });
         if (!existing || existing.organizationId !== orgId) {
             throw new common_1.NotFoundException("Disposable attendance not found");
+        }
+        if (existing.allowPreRegister && !fields.some((field) => field.id === "email")) {
+            throw new common_1.BadRequestException("Email field is required when pre-register is enabled");
         }
         const updated = await this.prisma.disposableAttendance.update({
             where: { id: attendanceId },
@@ -350,6 +378,7 @@ let DisposableAttendanceService = class DisposableAttendanceService {
             recurrenceMode: updated.recurrenceMode,
             recurrenceEndDateISO: updated.recurrenceEndDateISO,
             recurrenceCustomRule: updated.recurrenceCustomRule,
+            allowPreRegister: updated.allowPreRegister,
             isArchived: updated.isArchived,
             createdAtISO: updated.createdAt.toISOString(),
             updatedAtISO: updated.updatedAt.toISOString()
@@ -369,6 +398,8 @@ let DisposableAttendanceService = class DisposableAttendanceService {
         });
         const columns = [
             { key: "submittedAtISO", label: "Submitted" },
+            { key: "status", label: "Status" },
+            { key: "checkedInAtISO", label: "Checked in" },
             ...fields.map((field) => ({ key: field.id, label: field.label }))
         ];
         const rows = responses.map((response) => {
@@ -378,6 +409,9 @@ let DisposableAttendanceService = class DisposableAttendanceService {
                 id: response.id,
                 submittedAtISO: response.createdAt.toISOString(),
                 source: response.source,
+                status: response.status === "checked_in" ? "checked-in" : "preregistered",
+                preRegisteredAtISO: response.preRegisteredAt?.toISOString() ?? null,
+                checkedInAtISO: response.checkedInAt?.toISOString() ?? null,
                 values: alignedValues
             };
         });
@@ -400,11 +434,51 @@ let DisposableAttendanceService = class DisposableAttendanceService {
         }
         const fields = this.asFieldArray(attendance.fields);
         const sanitized = this.sanitizeResponseValues(fields, values);
+        const normalizedEmail = this.extractNormalizedEmail(sanitized) || null;
+        const now = new Date();
+        if (normalizedEmail) {
+            const existing = await this.prisma.disposableAttendanceResponse.findFirst({
+                where: {
+                    attendanceId,
+                    emailNormalized: normalizedEmail
+                }
+            });
+            if (existing) {
+                const mergedValues = {
+                    ...(existing.values ?? {}),
+                    ...sanitized
+                };
+                const updated = await this.prisma.disposableAttendanceResponse.update({
+                    where: { id: existing.id },
+                    data: {
+                        source: "admin",
+                        submittedById: adminUserId,
+                        status: "checked_in",
+                        checkedInAt: now,
+                        values: mergedValues
+                    }
+                });
+                return {
+                    id: updated.id,
+                    attendanceId: updated.attendanceId,
+                    source: updated.source,
+                    submittedById: updated.submittedById,
+                    status: "checked-in",
+                    preRegisteredAtISO: updated.preRegisteredAt?.toISOString() ?? null,
+                    checkedInAtISO: updated.checkedInAt?.toISOString() ?? null,
+                    submittedAtISO: updated.createdAt.toISOString(),
+                    values: mergedValues
+                };
+            }
+        }
         const created = await this.prisma.disposableAttendanceResponse.create({
             data: {
                 attendanceId,
                 source: "admin",
                 submittedById: adminUserId,
+                status: "checked_in",
+                emailNormalized: normalizedEmail,
+                checkedInAt: now,
                 values: sanitized
             }
         });
@@ -413,6 +487,9 @@ let DisposableAttendanceService = class DisposableAttendanceService {
             attendanceId: created.attendanceId,
             source: created.source,
             submittedById: created.submittedById,
+            status: "checked-in",
+            preRegisteredAtISO: created.preRegisteredAt?.toISOString() ?? null,
+            checkedInAtISO: created.checkedInAt?.toISOString() ?? null,
             submittedAtISO: created.createdAt.toISOString(),
             values: sanitized
         };
@@ -435,7 +512,8 @@ let DisposableAttendanceService = class DisposableAttendanceService {
             isRecurring: item.isRecurring,
             recurrenceMode: item.recurrenceMode,
             recurrenceEndDateISO: item.recurrenceEndDateISO,
-            recurrenceCustomRule: item.recurrenceCustomRule
+            recurrenceCustomRule: item.recurrenceCustomRule,
+            allowPreRegister: item.allowPreRegister
         };
     }
     async submitPublicResponse(publicId, values) {
@@ -449,11 +527,127 @@ let DisposableAttendanceService = class DisposableAttendanceService {
             throw new common_1.BadRequestException("This disposable attendance is closed");
         }
         const fields = this.asFieldArray(attendance.fields);
+        const todayISO = this.todayISO();
+        const normalizedEmail = this.extractNormalizedEmail(values);
+        if (attendance.allowPreRegister) {
+            if (!normalizedEmail) {
+                throw new common_1.BadRequestException("Email is required for pre-register/check-in");
+            }
+            const existing = await this.prisma.disposableAttendanceResponse.findFirst({
+                where: {
+                    attendanceId: attendance.id,
+                    emailNormalized: normalizedEmail
+                }
+            });
+            if (todayISO < attendance.eventDateISO) {
+                const sanitized = this.sanitizeResponseValues(fields, values);
+                if (existing) {
+                    const updated = await this.prisma.disposableAttendanceResponse.update({
+                        where: { id: existing.id },
+                        data: {
+                            values: sanitized,
+                            status: "preregistered",
+                            preRegisteredAt: existing.preRegisteredAt ?? new Date(),
+                            checkedInAt: null
+                        }
+                    });
+                    return {
+                        id: updated.id,
+                        attendanceId: updated.attendanceId,
+                        source: updated.source,
+                        status: "preregistered",
+                        preRegisteredAtISO: updated.preRegisteredAt?.toISOString() ?? null,
+                        checkedInAtISO: updated.checkedInAt?.toISOString() ?? null,
+                        submittedAtISO: updated.createdAt.toISOString(),
+                        action: "already-preregistered",
+                        message: "You are already pre-registered for this event.",
+                        values: sanitized
+                    };
+                }
+                const created = await this.prisma.disposableAttendanceResponse.create({
+                    data: {
+                        attendanceId: attendance.id,
+                        source: "public",
+                        status: "preregistered",
+                        emailNormalized: normalizedEmail,
+                        preRegisteredAt: new Date(),
+                        values: sanitized
+                    }
+                });
+                return {
+                    id: created.id,
+                    attendanceId: created.attendanceId,
+                    source: created.source,
+                    status: "preregistered",
+                    preRegisteredAtISO: created.preRegisteredAt?.toISOString() ?? null,
+                    checkedInAtISO: created.checkedInAt?.toISOString() ?? null,
+                    submittedAtISO: created.createdAt.toISOString(),
+                    action: "pre-registered",
+                    message: "Pre-registration successful. Please scan again on event day to check in.",
+                    values: sanitized
+                };
+            }
+            if (todayISO > attendance.eventDateISO) {
+                throw new common_1.BadRequestException("This event check-in window has closed");
+            }
+            if (existing) {
+                const mergedValues = {
+                    ...(existing.values ?? {}),
+                    email: normalizedEmail
+                };
+                const updated = await this.prisma.disposableAttendanceResponse.update({
+                    where: { id: existing.id },
+                    data: {
+                        status: "checked_in",
+                        checkedInAt: new Date(),
+                        values: mergedValues
+                    }
+                });
+                return {
+                    id: updated.id,
+                    attendanceId: updated.attendanceId,
+                    source: updated.source,
+                    status: "checked-in",
+                    preRegisteredAtISO: updated.preRegisteredAt?.toISOString() ?? null,
+                    checkedInAtISO: updated.checkedInAt?.toISOString() ?? null,
+                    submittedAtISO: updated.createdAt.toISOString(),
+                    action: "checked-in",
+                    message: "Welcome back. Your attendance has been checked in.",
+                    values: (updated.values ?? {})
+                };
+            }
+            const sanitized = this.sanitizeResponseValues(fields, values);
+            const created = await this.prisma.disposableAttendanceResponse.create({
+                data: {
+                    attendanceId: attendance.id,
+                    source: "public",
+                    status: "checked_in",
+                    emailNormalized: normalizedEmail,
+                    checkedInAt: new Date(),
+                    values: sanitized
+                }
+            });
+            return {
+                id: created.id,
+                attendanceId: created.attendanceId,
+                source: created.source,
+                status: "checked-in",
+                preRegisteredAtISO: created.preRegisteredAt?.toISOString() ?? null,
+                checkedInAtISO: created.checkedInAt?.toISOString() ?? null,
+                submittedAtISO: created.createdAt.toISOString(),
+                action: "checked-in",
+                message: "Check-in successful.",
+                values: sanitized
+            };
+        }
         const sanitized = this.sanitizeResponseValues(fields, values);
         const created = await this.prisma.disposableAttendanceResponse.create({
             data: {
                 attendanceId: attendance.id,
                 source: "public",
+                status: "checked_in",
+                emailNormalized: this.extractNormalizedEmail(sanitized) || null,
+                checkedInAt: new Date(),
                 values: sanitized
             }
         });
@@ -461,7 +655,12 @@ let DisposableAttendanceService = class DisposableAttendanceService {
             id: created.id,
             attendanceId: created.attendanceId,
             source: created.source,
+            status: "checked-in",
+            preRegisteredAtISO: created.preRegisteredAt?.toISOString() ?? null,
+            checkedInAtISO: created.checkedInAt?.toISOString() ?? null,
             submittedAtISO: created.createdAt.toISOString(),
+            action: "checked-in",
+            message: "Check-in submitted successfully.",
             values: sanitized
         };
     }
@@ -477,12 +676,22 @@ let DisposableAttendanceService = class DisposableAttendanceService {
             where: { attendanceId },
             orderBy: { createdAt: "asc" }
         });
-        const headers = ["submittedAtISO", "source", ...fields.map((field) => field.label)];
+        const headers = [
+            "submittedAtISO",
+            "source",
+            "status",
+            "preRegisteredAtISO",
+            "checkedInAtISO",
+            ...fields.map((field) => field.label)
+        ];
         const csvRows = responses.map((response) => {
             const values = (response.values ?? {});
             return [
                 response.createdAt.toISOString(),
                 response.source,
+                response.status,
+                response.preRegisteredAt?.toISOString() ?? "",
+                response.checkedInAt?.toISOString() ?? "",
                 ...fields.map((field) => values[field.id] ?? "")
             ];
         });

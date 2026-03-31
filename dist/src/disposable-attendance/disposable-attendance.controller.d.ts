@@ -27,6 +27,7 @@ export declare class DisposableAttendanceController {
         recurrenceMode: import("@prisma/client").$Enums.DisposableRecurrenceMode;
         recurrenceEndDateISO: string | null;
         recurrenceCustomRule: string;
+        allowPreRegister: boolean;
         isArchived: boolean;
         createdAtISO: string;
         updatedAtISO: string;
@@ -47,6 +48,7 @@ export declare class DisposableAttendanceController {
         recurrenceMode: "none" | "daily" | "weekly" | "monthly" | "custom";
         recurrenceEndDateISO?: string | null;
         recurrenceCustomRule?: string;
+        allowPreRegister?: boolean;
     }, req: {
         user?: {
             orgId?: string;
@@ -70,6 +72,7 @@ export declare class DisposableAttendanceController {
         recurrenceMode: import("@prisma/client").$Enums.DisposableRecurrenceMode;
         recurrenceEndDateISO: string | null;
         recurrenceCustomRule: string;
+        allowPreRegister: boolean;
         isArchived: boolean;
         createdAtISO: string;
         updatedAtISO: string;
@@ -90,6 +93,7 @@ export declare class DisposableAttendanceController {
         recurrenceMode?: "none" | "daily" | "weekly" | "monthly" | "custom";
         recurrenceEndDateISO?: string | null;
         recurrenceCustomRule?: string;
+        allowPreRegister?: boolean;
         isArchived?: boolean;
     }, req: {
         user?: {
@@ -114,6 +118,7 @@ export declare class DisposableAttendanceController {
         recurrenceMode: import("@prisma/client").$Enums.DisposableRecurrenceMode;
         recurrenceEndDateISO: string | null;
         recurrenceCustomRule: string;
+        allowPreRegister: boolean;
         isArchived: boolean;
         createdAtISO: string;
         updatedAtISO: string;
@@ -136,6 +141,9 @@ export declare class DisposableAttendanceController {
         attendanceId: string;
         source: string;
         submittedById: string | null;
+        status: string;
+        preRegisteredAtISO: string | null;
+        checkedInAtISO: string | null;
         submittedAtISO: string;
         values: Record<string, string>;
     }[]>;
@@ -155,6 +163,9 @@ export declare class DisposableAttendanceController {
             id: string;
             submittedAtISO: string;
             source: string;
+            status: "preregistered" | "checked-in";
+            preRegisteredAtISO: string | null;
+            checkedInAtISO: string | null;
             values: Record<string, string>;
         }[];
     }>;
@@ -189,6 +200,7 @@ export declare class DisposableAttendanceController {
         recurrenceMode: import("@prisma/client").$Enums.DisposableRecurrenceMode;
         recurrenceEndDateISO: string | null;
         recurrenceCustomRule: string;
+        allowPreRegister: boolean;
         isArchived: boolean;
         createdAtISO: string;
         updatedAtISO: string;
@@ -207,8 +219,13 @@ export declare class DisposableAttendanceController {
         attendanceId: string;
         source: string;
         submittedById: string | null;
+        status: string;
+        preRegisteredAtISO: string | null;
+        checkedInAtISO: string | null;
         submittedAtISO: string;
-        values: Record<string, string>;
+        values: {
+            [x: string]: string;
+        };
     }>;
     exportCsv(id: string, orgId: string, req: {
         user?: {
@@ -233,6 +250,7 @@ export declare class DisposableAttendanceController {
         recurrenceMode: import("@prisma/client").$Enums.DisposableRecurrenceMode;
         recurrenceEndDateISO: string | null;
         recurrenceCustomRule: string;
+        allowPreRegister: boolean;
     }>;
     submitPublicResponse(publicId: string, body: {
         values: Record<string, string>;
@@ -240,7 +258,12 @@ export declare class DisposableAttendanceController {
         id: string;
         attendanceId: string;
         source: string;
+        status: string;
+        preRegisteredAtISO: string | null;
+        checkedInAtISO: string | null;
         submittedAtISO: string;
+        action: string;
+        message: string;
         values: Record<string, string>;
     }>;
 }

@@ -79,6 +79,7 @@ export class DisposableAttendanceController {
           fields: { type: "array", items: { type: "object" } },
           isRecurring: { type: "boolean" },
           recurrenceMode: { type: "string", enum: ["none", "daily", "weekly", "monthly", "custom"] },
+          allowPreRegister: { type: "boolean" },
           isArchived: { type: "boolean" },
           publicId: { type: "string", nullable: true },
           responseCount: { type: "number" }
@@ -564,6 +565,7 @@ export class DisposableAttendanceController {
         description: { type: "string", nullable: true },
         location: { type: "string", nullable: true },
         eventDateISO: { type: "string", format: "date" },
+        allowPreRegister: { type: "boolean" },
         fields: { type: "array", items: { type: "object" } }
       }
     }

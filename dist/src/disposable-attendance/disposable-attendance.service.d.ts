@@ -16,6 +16,9 @@ type ResponsesTableRow = {
     id: string;
     submittedAtISO: string;
     source: string;
+    status: "preregistered" | "checked-in";
+    preRegisteredAtISO: string | null;
+    checkedInAtISO: string | null;
     values: Record<string, string>;
 };
 type CreateDisposablePayload = {
@@ -29,6 +32,7 @@ type CreateDisposablePayload = {
     recurrenceMode: DisposableRecurrenceMode;
     recurrenceEndDateISO?: string | null;
     recurrenceCustomRule?: string;
+    allowPreRegister?: boolean;
 };
 type UpdateDisposablePayload = Partial<Omit<CreateDisposablePayload, "orgId"> & {
     isArchived: boolean;
@@ -42,6 +46,8 @@ export declare class DisposableAttendanceService {
     private validateFields;
     private validateRecurring;
     private sanitizeResponseValues;
+    private extractNormalizedEmail;
+    private todayISO;
     private toPublicId;
     listByOrg(orgId: string): Promise<{
         id: string;
@@ -56,6 +62,7 @@ export declare class DisposableAttendanceService {
         recurrenceMode: import("@prisma/client").$Enums.DisposableRecurrenceMode;
         recurrenceEndDateISO: string | null;
         recurrenceCustomRule: string;
+        allowPreRegister: boolean;
         isArchived: boolean;
         createdAtISO: string;
         updatedAtISO: string;
@@ -73,6 +80,7 @@ export declare class DisposableAttendanceService {
         recurrenceMode: import("@prisma/client").$Enums.DisposableRecurrenceMode;
         recurrenceEndDateISO: string | null;
         recurrenceCustomRule: string;
+        allowPreRegister: boolean;
         isArchived: boolean;
         createdAtISO: string;
         updatedAtISO: string;
@@ -90,6 +98,7 @@ export declare class DisposableAttendanceService {
         recurrenceMode: import("@prisma/client").$Enums.DisposableRecurrenceMode;
         recurrenceEndDateISO: string | null;
         recurrenceCustomRule: string;
+        allowPreRegister: boolean;
         isArchived: boolean;
         createdAtISO: string;
         updatedAtISO: string;
@@ -102,6 +111,9 @@ export declare class DisposableAttendanceService {
         attendanceId: string;
         source: string;
         submittedById: string | null;
+        status: string;
+        preRegisteredAtISO: string | null;
+        checkedInAtISO: string | null;
         submittedAtISO: string;
         values: Record<string, string>;
     }[]>;
@@ -118,6 +130,7 @@ export declare class DisposableAttendanceService {
         recurrenceMode: import("@prisma/client").$Enums.DisposableRecurrenceMode;
         recurrenceEndDateISO: string | null;
         recurrenceCustomRule: string;
+        allowPreRegister: boolean;
         isArchived: boolean;
         createdAtISO: string;
         updatedAtISO: string;
@@ -133,8 +146,13 @@ export declare class DisposableAttendanceService {
         attendanceId: string;
         source: string;
         submittedById: string | null;
+        status: string;
+        preRegisteredAtISO: string | null;
+        checkedInAtISO: string | null;
         submittedAtISO: string;
-        values: Record<string, string>;
+        values: {
+            [x: string]: string;
+        };
     }>;
     getPublicForm(publicId: string): Promise<{
         publicId: string;
@@ -148,12 +166,18 @@ export declare class DisposableAttendanceService {
         recurrenceMode: import("@prisma/client").$Enums.DisposableRecurrenceMode;
         recurrenceEndDateISO: string | null;
         recurrenceCustomRule: string;
+        allowPreRegister: boolean;
     }>;
     submitPublicResponse(publicId: string, values: Record<string, string>): Promise<{
         id: string;
         attendanceId: string;
         source: string;
+        status: string;
+        preRegisteredAtISO: string | null;
+        checkedInAtISO: string | null;
         submittedAtISO: string;
+        action: string;
+        message: string;
         values: Record<string, string>;
     }>;
     exportCsv(attendanceId: string, orgId: string): Promise<{

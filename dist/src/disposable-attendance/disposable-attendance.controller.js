@@ -112,6 +112,7 @@ __decorate([
                     fields: { type: "array", items: { type: "object" } },
                     isRecurring: { type: "boolean" },
                     recurrenceMode: { type: "string", enum: ["none", "daily", "weekly", "monthly", "custom"] },
+                    allowPreRegister: { type: "boolean" },
                     isArchived: { type: "boolean" },
                     publicId: { type: "string", nullable: true },
                     responseCount: { type: "number" }
@@ -207,6 +208,11 @@ __decorate([
                     type: "string",
                     nullable: true,
                     description: "Custom RRULE for recurrence"
+                },
+                allowPreRegister: {
+                    type: "boolean",
+                    description: "Allow participants to pre-register before event day and check in on event day",
+                    example: false
                 }
             }
         }
@@ -261,6 +267,7 @@ __decorate([
                 recurrenceMode: { type: "string", enum: ["none", "daily", "weekly", "monthly", "custom"] },
                 recurrenceEndDateISO: { type: "string", format: "date", nullable: true },
                 recurrenceCustomRule: { type: "string", nullable: true },
+                allowPreRegister: { type: "boolean" },
                 isArchived: { type: "boolean" }
             }
         }
@@ -525,6 +532,7 @@ __decorate([
                 description: { type: "string", nullable: true },
                 location: { type: "string", nullable: true },
                 eventDateISO: { type: "string", format: "date" },
+                allowPreRegister: { type: "boolean" },
                 fields: { type: "array", items: { type: "object" } }
             }
         }
@@ -565,7 +573,17 @@ __decorate([
         schema: {
             type: "object",
             properties: {
-                message: { type: "string", example: "Thank you for your response" }
+                message: { type: "string", example: "Check-in submitted successfully." },
+                action: {
+                    type: "string",
+                    enum: ["pre-registered", "already-preregistered", "checked-in"],
+                    example: "checked-in"
+                },
+                status: {
+                    type: "string",
+                    enum: ["preregistered", "checked-in"],
+                    example: "checked-in"
+                }
             }
         }
     }),
