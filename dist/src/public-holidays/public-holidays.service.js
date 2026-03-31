@@ -37,6 +37,13 @@ let PublicHolidaysService = class PublicHolidaysService {
     }
     async create(orgId, data) {
         try {
+            const organization = await this.prisma.organization.findUnique({
+                where: { id: orgId },
+                select: { id: true }
+            });
+            if (!organization) {
+                throw new common_1.NotFoundException("Organization not found");
+            }
             return await this.prisma.publicHoliday.create({
                 data: {
                     organizationId: orgId,
@@ -50,6 +57,9 @@ let PublicHolidaysService = class PublicHolidaysService {
             });
         }
         catch (error) {
+            if (error instanceof common_1.NotFoundException) {
+                throw error;
+            }
             if (this.isDuplicateKeyError(error)) {
                 throw new common_1.ConflictException("A holiday already exists for this date");
             }

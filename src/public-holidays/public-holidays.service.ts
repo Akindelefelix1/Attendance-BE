@@ -50,6 +50,14 @@ export class PublicHolidaysService {
     }
   ): Promise<PublicHoliday> {
     try {
+      const organization = await this.prisma.organization.findUnique({
+        where: { id: orgId },
+        select: { id: true }
+      });
+      if (!organization) {
+        throw new NotFoundException("Organization not found");
+      }
+
       return await this.prisma.publicHoliday.create({
         data: {
           organizationId: orgId,
@@ -62,6 +70,9 @@ export class PublicHolidaysService {
         }
       });
     } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
       if (this.isDuplicateKeyError(error)) {
         throw new ConflictException("A holiday already exists for this date");
       }
