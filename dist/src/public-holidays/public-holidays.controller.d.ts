@@ -17,8 +17,10 @@ export declare class PublicHolidaysController {
         affectsAllStaff: boolean;
     }[]>;
     create(orgId: string, body: {
-        name: string;
-        dateISO: string;
+        name?: string;
+        holidayName?: string;
+        dateISO?: string;
+        date?: string;
         isRecurring?: boolean;
         recurrencePattern?: string;
         description?: string;

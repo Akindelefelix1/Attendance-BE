@@ -197,8 +197,10 @@ export class PublicHolidaysController {
     @Param("orgId") orgId: string,
     @Body()
     body: {
-      name: string;
-      dateISO: string;
+      name?: string;
+      holidayName?: string;
+      dateISO?: string;
+      date?: string;
       isRecurring?: boolean;
       recurrencePattern?: string;
       description?: string;
@@ -208,14 +210,17 @@ export class PublicHolidaysController {
   ) {
     this.assertOrgScope(orgId, req.user);
 
-    if (!body.name || !body.dateISO) {
+    const resolvedName = (body.name ?? body.holidayName ?? "").trim();
+    const resolvedDateISO = body.dateISO ?? body.date;
+
+    if (!resolvedName || !resolvedDateISO) {
       throw new BadRequestException("Name and date are required");
     }
 
-    const normalizedDateISO = this.normalizeDateISO(body.dateISO);
+    const normalizedDateISO = this.normalizeDateISO(resolvedDateISO);
 
     return this.publicHolidaysService.create(orgId, {
-      name: body.name,
+      name: resolvedName,
       dateISO: normalizedDateISO,
       isRecurring: body.isRecurring ?? false,
       recurrencePattern: body.recurrencePattern,

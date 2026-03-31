@@ -4,6 +4,8 @@ export declare class PublicHolidaysService {
     private readonly prisma;
     constructor(prisma: PrismaService);
     private isDuplicateKeyError;
+    private isForeignKeyError;
+    private isRecordNotFoundError;
     create(orgId: string, data: {
         name: string;
         dateISO: string;

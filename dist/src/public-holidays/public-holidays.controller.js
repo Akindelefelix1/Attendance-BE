@@ -71,12 +71,14 @@ let PublicHolidaysController = class PublicHolidaysController {
     }
     async create(orgId, body, req) {
         this.assertOrgScope(orgId, req.user);
-        if (!body.name || !body.dateISO) {
+        const resolvedName = (body.name ?? body.holidayName ?? "").trim();
+        const resolvedDateISO = body.dateISO ?? body.date;
+        if (!resolvedName || !resolvedDateISO) {
             throw new common_1.BadRequestException("Name and date are required");
         }
-        const normalizedDateISO = this.normalizeDateISO(body.dateISO);
+        const normalizedDateISO = this.normalizeDateISO(resolvedDateISO);
         return this.publicHolidaysService.create(orgId, {
-            name: body.name,
+            name: resolvedName,
             dateISO: normalizedDateISO,
             isRecurring: body.isRecurring ?? false,
             recurrencePattern: body.recurrencePattern,

@@ -1,4 +1,9 @@
-import { ConflictException, Injectable, InternalServerErrorException } from "@nestjs/common";
+import {
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException
+} from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { PublicHoliday } from "@prisma/client";
 
@@ -12,6 +17,24 @@ export class PublicHolidaysService {
       typeof error === "object" &&
       "code" in error &&
       (error as { code?: string }).code === "P2002"
+    );
+  }
+
+  private isForeignKeyError(error: unknown) {
+    return (
+      !!error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error as { code?: string }).code === "P2003"
+    );
+  }
+
+  private isRecordNotFoundError(error: unknown) {
+    return (
+      !!error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error as { code?: string }).code === "P2025"
     );
   }
 
@@ -41,6 +64,9 @@ export class PublicHolidaysService {
     } catch (error) {
       if (this.isDuplicateKeyError(error)) {
         throw new ConflictException("A holiday already exists for this date");
+      }
+      if (this.isForeignKeyError(error)) {
+        throw new NotFoundException("Organization not found");
       }
       throw new InternalServerErrorException("Failed to create holiday");
     }
@@ -72,6 +98,13 @@ export class PublicHolidaysService {
     }>
   ): Promise<PublicHoliday> {
     try {
+      const existing = await this.prisma.publicHoliday.findFirst({
+        where: { id, organizationId: orgId }
+      });
+      if (!existing) {
+        throw new NotFoundException("Holiday not found");
+      }
+
       return await this.prisma.publicHoliday.update({
         where: { id },
         data: {
@@ -79,14 +112,27 @@ export class PublicHolidaysService {
         }
       });
     } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
       if (this.isDuplicateKeyError(error)) {
         throw new ConflictException("A holiday already exists for this date");
+      }
+      if (this.isRecordNotFoundError(error)) {
+        throw new NotFoundException("Holiday not found");
       }
       throw new InternalServerErrorException("Failed to update holiday");
     }
   }
 
   async delete(orgId: string, id: string): Promise<PublicHoliday> {
+    const existing = await this.prisma.publicHoliday.findFirst({
+      where: { id, organizationId: orgId }
+    });
+    if (!existing) {
+      throw new NotFoundException("Holiday not found");
+    }
+
     return this.prisma.publicHoliday.delete({
       where: { id }
     });
