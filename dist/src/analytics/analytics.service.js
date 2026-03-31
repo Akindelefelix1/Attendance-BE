@@ -13,6 +13,7 @@ exports.AnalyticsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const public_holidays_service_1 = require("../public-holidays/public-holidays.service");
+const DEFAULT_WORKING_DAYS = [1, 2, 3, 4, 5];
 const toLocalDateISO = (date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -34,6 +35,13 @@ const getWeekStart = (date) => {
 const isWorkingDay = (dateISO, workingDays) => {
     const day = getLocalDayFromISO(dateISO);
     return workingDays.includes(day);
+};
+const normalizeWorkingDays = (workingDays) => {
+    if (!Array.isArray(workingDays) || workingDays.length === 0) {
+        return DEFAULT_WORKING_DAYS;
+    }
+    const sanitized = Array.from(new Set(workingDays.filter((day) => Number.isInteger(day) && day >= 0 && day <= 6))).sort((a, b) => a - b);
+    return sanitized.length > 0 ? sanitized : DEFAULT_WORKING_DAYS;
 };
 const getWeekRange = (today, workingDays, includeFuture) => {
     const start = getWeekStart(today);
@@ -146,7 +154,7 @@ let AnalyticsService = class AnalyticsService {
                 }
             };
         }
-        const workingDays = organization.workingDays ?? [1, 2, 3, 4, 5];
+        const workingDays = normalizeWorkingDays(organization.workingDays);
         const includeFuture = organization.analyticsIncludeFutureDays ?? false;
         const dateRange = getDateRange(range, workingDays, includeFuture);
         const publicHolidaySet = dateRange.length

@@ -3,7 +3,7 @@ export declare class AnalyticsController {
     private readonly analyticsService;
     constructor(analyticsService: AnalyticsService);
     private assertOrgScope;
-    getAnalytics(orgId: string, range: "week" | "month" | undefined, filter: "all" | "late" | "early" | "absent" | undefined, req: {
+    getAnalytics(orgId: string | undefined, range: string | undefined, filter: string | undefined, req: {
         user?: {
             orgId?: string;
             role?: string;

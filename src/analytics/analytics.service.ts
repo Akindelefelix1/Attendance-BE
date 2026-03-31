@@ -4,6 +4,7 @@ import { PublicHolidaysService } from "../public-holidays/public-holidays.servic
 
 type RangeKey = "week" | "month";
 type FilterKey = "all" | "late" | "early" | "absent";
+const DEFAULT_WORKING_DAYS = [1, 2, 3, 4, 5];
 
 const toLocalDateISO = (date: Date) => {
   const year = date.getFullYear();
@@ -29,6 +30,22 @@ const getWeekStart = (date: Date) => {
 const isWorkingDay = (dateISO: string, workingDays: number[]) => {
   const day = getLocalDayFromISO(dateISO);
   return workingDays.includes(day);
+};
+
+const normalizeWorkingDays = (workingDays: number[] | null | undefined) => {
+  if (!Array.isArray(workingDays) || workingDays.length === 0) {
+    return DEFAULT_WORKING_DAYS;
+  }
+
+  const sanitized = Array.from(
+    new Set(
+      workingDays.filter(
+        (day): day is number => Number.isInteger(day) && day >= 0 && day <= 6
+      )
+    )
+  ).sort((a, b) => a - b);
+
+  return sanitized.length > 0 ? sanitized : DEFAULT_WORKING_DAYS;
 };
 
 const getWeekRange = (today: Date, workingDays: number[], includeFuture: boolean) => {
@@ -159,7 +176,7 @@ export class AnalyticsService {
         }
       };
     }
-    const workingDays = organization.workingDays ?? [1, 2, 3, 4, 5];
+    const workingDays = normalizeWorkingDays(organization.workingDays);
     const includeFuture = organization.analyticsIncludeFutureDays ?? false;
     const dateRange = getDateRange(range, workingDays, includeFuture);
     

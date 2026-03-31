@@ -35,9 +35,15 @@ let AnalyticsController = class AnalyticsController {
             throw new common_1.ForbiddenException("Access denied for this organization");
         }
     }
-    getAnalytics(orgId, range = "week", filter = "all", req) {
-        this.assertOrgScope(orgId, req.user);
-        return this.analyticsService.getAnalytics(orgId, range, filter);
+    getAnalytics(orgId, range, filter, req) {
+        const resolvedOrgId = (orgId ?? req.user?.orgId ?? "").trim();
+        if (!resolvedOrgId) {
+            throw new common_1.BadRequestException("orgId is required");
+        }
+        const normalizedRange = range === "month" ? "month" : "week";
+        const normalizedFilter = filter === "late" || filter === "early" || filter === "absent" ? filter : "all";
+        this.assertOrgScope(resolvedOrgId, req.user);
+        return this.analyticsService.getAnalytics(resolvedOrgId, normalizedRange, normalizedFilter);
     }
 };
 exports.AnalyticsController = AnalyticsController;
@@ -121,7 +127,7 @@ __decorate([
     __param(2, (0, common_1.Query)("filter")),
     __param(3, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, String, Object]),
+    __metadata("design:paramtypes", [Object, Object, Object, Object]),
     __metadata("design:returntype", void 0)
 ], AnalyticsController.prototype, "getAnalytics", null);
 exports.AnalyticsController = AnalyticsController = __decorate([

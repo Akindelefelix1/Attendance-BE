@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   ForbiddenException,
   Get,
@@ -115,12 +116,21 @@ export class AnalyticsController {
   @UseGuards(AuthGuard("jwt"), PermissionsGuard)
   @Permissions("view_analytics")
   getAnalytics(
-    @Query("orgId") orgId: string,
-    @Query("range") range: "week" | "month" = "week",
-    @Query("filter") filter: "all" | "late" | "early" | "absent" = "all",
+    @Query("orgId") orgId: string | undefined,
+    @Query("range") range: string | undefined,
+    @Query("filter") filter: string | undefined,
     @Req() req: { user?: { orgId?: string; role?: string } }
   ) {
-    this.assertOrgScope(orgId, req.user);
-    return this.analyticsService.getAnalytics(orgId, range, filter);
+    const resolvedOrgId = (orgId ?? req.user?.orgId ?? "").trim();
+    if (!resolvedOrgId) {
+      throw new BadRequestException("orgId is required");
+    }
+
+    const normalizedRange = range === "month" ? "month" : "week";
+    const normalizedFilter =
+      filter === "late" || filter === "early" || filter === "absent" ? filter : "all";
+
+    this.assertOrgScope(resolvedOrgId, req.user);
+    return this.analyticsService.getAnalytics(resolvedOrgId, normalizedRange, normalizedFilter);
   }
 }
