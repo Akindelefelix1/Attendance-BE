@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PublicHolidaysController = void 0;
 const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
+const swagger_1 = require("@nestjs/swagger");
 const permissions_decorator_1 = require("../auth/permissions.decorator");
 const permissions_guard_1 = require("../auth/permissions.guard");
 const public_holidays_service_1 = require("./public-holidays.service");
@@ -72,6 +73,33 @@ let PublicHolidaysController = class PublicHolidaysController {
 exports.PublicHolidaysController = PublicHolidaysController;
 __decorate([
     (0, common_1.Get)(),
+    (0, swagger_1.ApiOperation)({
+        summary: "List all public holidays for an organization",
+        description: "Retrieve all public holidays configured for the specified organization"
+    }),
+    (0, swagger_1.ApiParam)({
+        name: "orgId",
+        type: String,
+        description: "The organization ID",
+        example: "org_123abc"
+    }),
+    (0, swagger_1.ApiOkResponse)({
+        description: "Public holidays list retrieved successfully",
+        schema: {
+            type: "object",
+            properties: {
+                id: { type: "string", example: "holiday_123" },
+                organizationId: { type: "string", example: "org_123abc" },
+                name: { type: "string", example: "New Year" },
+                dateISO: { type: "string", format: "date", example: "2026-01-01" },
+                isRecurring: { type: "boolean", example: false },
+                recurrencePattern: { type: "string", nullable: true },
+                description: { type: "string", nullable: true },
+                affectsAllStaff: { type: "boolean", example: true }
+            }
+        }
+    }),
+    (0, swagger_1.ApiForbiddenResponse)({ description: "Authorization failed - user cannot access this organization" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt")),
     __param(0, (0, common_1.Param)("orgId")),
     __param(1, (0, common_1.Req)()),
@@ -81,6 +109,74 @@ __decorate([
 ], PublicHolidaysController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Post)(),
+    (0, swagger_1.ApiOperation)({
+        summary: "Create a new public holiday",
+        description: "Create a new public holiday for the organization. Can be one-time or recurring."
+    }),
+    (0, swagger_1.ApiParam)({
+        name: "orgId",
+        type: String,
+        description: "The organization ID",
+        example: "org_123abc"
+    }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: "object",
+            required: ["name", "dateISO"],
+            properties: {
+                name: {
+                    type: "string",
+                    description: "Name of the public holiday",
+                    example: "New Year's Day"
+                },
+                dateISO: {
+                    type: "string",
+                    format: "date",
+                    description: "Date of the public holiday (ISO 8601 format)",
+                    example: "2026-01-01"
+                },
+                isRecurring: {
+                    type: "boolean",
+                    description: "Whether the holiday recurs every year",
+                    example: false
+                },
+                recurrencePattern: {
+                    type: "string",
+                    nullable: true,
+                    description: "RRULE pattern for recurring holidays (RFC 5545)",
+                    example: null
+                },
+                description: {
+                    type: "string",
+                    nullable: true,
+                    description: "Optional description of the holiday",
+                    example: "Celebration of new calendar year"
+                },
+                affectsAllStaff: {
+                    type: "boolean",
+                    description: "Whether the holiday applies to all staff members",
+                    example: true
+                }
+            }
+        }
+    }),
+    (0, swagger_1.ApiCreatedResponse)({
+        description: "Public holiday created successfully",
+        schema: {
+            type: "object",
+            properties: {
+                id: { type: "string" },
+                organizationId: { type: "string" },
+                name: { type: "string" },
+                dateISO: { type: "string", format: "date" },
+                isRecurring: { type: "boolean" },
+                recurrencePattern: { type: "string", nullable: true },
+                description: { type: "string", nullable: true },
+                affectsAllStaff: { type: "boolean" }
+            }
+        }
+    }),
+    (0, swagger_1.ApiForbiddenResponse)({ description: "Authorization failed - user cannot access this organization" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_settings"),
     __param(0, (0, common_1.Param)("orgId")),
@@ -92,6 +188,64 @@ __decorate([
 ], PublicHolidaysController.prototype, "create", null);
 __decorate([
     (0, common_1.Patch)(":id"),
+    (0, swagger_1.ApiOperation)({
+        summary: "Update an existing public holiday",
+        description: "Update the details of an existing public holiday"
+    }),
+    (0, swagger_1.ApiParam)({
+        name: "orgId",
+        type: String,
+        description: "The organization ID",
+        example: "org_123abc"
+    }),
+    (0, swagger_1.ApiParam)({
+        name: "id",
+        type: String,
+        description: "The public holiday ID",
+        example: "holiday_123"
+    }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: "object",
+            properties: {
+                name: {
+                    type: "string",
+                    description: "Updated holiday name",
+                    example: "New Year's Day"
+                },
+                dateISO: {
+                    type: "string",
+                    format: "date",
+                    description: "Updated holiday date",
+                    example: "2026-01-01"
+                },
+                isRecurring: {
+                    type: "boolean",
+                    description: "Update recurring status",
+                    example: false
+                },
+                recurrencePattern: {
+                    type: "string",
+                    nullable: true,
+                    description: "Updated RRULE pattern"
+                },
+                description: {
+                    type: "string",
+                    nullable: true,
+                    description: "Updated holiday description"
+                },
+                affectsAllStaff: {
+                    type: "boolean",
+                    description: "Update staff scope"
+                }
+            }
+        }
+    }),
+    (0, swagger_1.ApiOkResponse)({
+        description: "Public holiday updated successfully"
+    }),
+    (0, swagger_1.ApiNotFoundResponse)({ description: "Public holiday not found" }),
+    (0, swagger_1.ApiForbiddenResponse)({ description: "Authorization failed - user cannot access this organization" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_settings"),
     __param(0, (0, common_1.Param)("orgId")),
@@ -104,6 +258,27 @@ __decorate([
 ], PublicHolidaysController.prototype, "update", null);
 __decorate([
     (0, common_1.Delete)(":id"),
+    (0, swagger_1.ApiOperation)({
+        summary: "Delete a public holiday",
+        description: "Remove a public holiday from the organization"
+    }),
+    (0, swagger_1.ApiParam)({
+        name: "orgId",
+        type: String,
+        description: "The organization ID",
+        example: "org_123abc"
+    }),
+    (0, swagger_1.ApiParam)({
+        name: "id",
+        type: String,
+        description: "The public holiday ID",
+        example: "holiday_123"
+    }),
+    (0, swagger_1.ApiOkResponse)({
+        description: "Public holiday deleted successfully"
+    }),
+    (0, swagger_1.ApiNotFoundResponse)({ description: "Public holiday not found" }),
+    (0, swagger_1.ApiForbiddenResponse)({ description: "Authorization failed - user cannot access this organization" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_settings"),
     __param(0, (0, common_1.Param)("orgId")),
@@ -114,6 +289,8 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], PublicHolidaysController.prototype, "delete", null);
 exports.PublicHolidaysController = PublicHolidaysController = __decorate([
+    (0, swagger_1.ApiTags)("Public Holidays"),
+    (0, swagger_1.ApiCookieAuth)("cookieAuth"),
     (0, common_1.Controller)("organizations/:orgId/public-holidays"),
     __metadata("design:paramtypes", [public_holidays_service_1.PublicHolidaysService])
 ], PublicHolidaysController);

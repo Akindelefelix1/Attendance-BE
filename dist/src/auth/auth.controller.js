@@ -69,9 +69,30 @@ let AuthController = class AuthController {
 exports.AuthController = AuthController;
 __decorate([
     (0, common_1.Post)("login"),
-    (0, swagger_1.ApiOperation)({ summary: "Admin login" }),
-    (0, swagger_1.ApiOkResponse)({ description: "Admin authenticated successfully" }),
+    (0, swagger_1.ApiOperation)({
+        summary: "Admin login",
+        description: "Authenticate an admin user and create a session. Returns JWT token in httpOnly cookie."
+    }),
+    (0, swagger_1.ApiOkResponse)({
+        description: "Admin authenticated successfully",
+        schema: {
+            type: "object",
+            properties: {
+                user: {
+                    type: "object",
+                    properties: {
+                        id: { type: "string", example: "admin_123" },
+                        email: { type: "string", format: "email", example: "admin@org.com" },
+                        role: { type: "string", example: "admin" },
+                        orgId: { type: "string", example: "org_123abc" }
+                    }
+                },
+                verified: { type: "boolean", example: true }
+            }
+        }
+    }),
     (0, swagger_1.ApiUnauthorizedResponse)({ description: "Incorrect email or password" }),
+    (0, swagger_1.ApiBadRequestResponse)({ description: "Invalid request body" }),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
@@ -80,9 +101,31 @@ __decorate([
 ], AuthController.prototype, "login", null);
 __decorate([
     (0, common_1.Post)("staff/login"),
-    (0, swagger_1.ApiOperation)({ summary: "Staff login" }),
-    (0, swagger_1.ApiOkResponse)({ description: "Staff authenticated successfully" }),
+    (0, swagger_1.ApiOperation)({
+        summary: "Staff login",
+        description: "Authenticate a staff member and create a session. Returns JWT token in httpOnly cookie."
+    }),
+    (0, swagger_1.ApiOkResponse)({
+        description: "Staff authenticated successfully",
+        schema: {
+            type: "object",
+            properties: {
+                user: {
+                    type: "object",
+                    properties: {
+                        id: { type: "string", example: "staff_123" },
+                        fullName: { type: "string", example: "John Doe" },
+                        email: { type: "string", format: "email", example: "john@org.com" },
+                        role: { type: "string", example: "staff" },
+                        orgId: { type: "string", example: "org_123abc" }
+                    }
+                },
+                verified: { type: "boolean", example: true }
+            }
+        }
+    }),
     (0, swagger_1.ApiUnauthorizedResponse)({ description: "Incorrect email or password" }),
+    (0, swagger_1.ApiBadRequestResponse)({ description: "Invalid request body" }),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
@@ -91,8 +134,20 @@ __decorate([
 ], AuthController.prototype, "staffLogin", null);
 __decorate([
     (0, common_1.Post)("staff/request-verify"),
-    (0, swagger_1.ApiOperation)({ summary: "Request staff verification token" }),
-    (0, swagger_1.ApiOkResponse)({ description: "Verification request accepted" }),
+    (0, swagger_1.ApiOperation)({
+        summary: "Request staff verification token",
+        description: "Request a verification email for staff account activation. Token is sent via email."
+    }),
+    (0, swagger_1.ApiOkResponse)({
+        description: "Verification request accepted",
+        schema: {
+            type: "object",
+            properties: {
+                message: { type: "string", example: "Verification email sent" }
+            }
+        }
+    }),
+    (0, swagger_1.ApiBadRequestResponse)({ description: "Invalid email address" }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [auth_dto_1.RequestEmailDto]),
@@ -100,9 +155,20 @@ __decorate([
 ], AuthController.prototype, "requestVerify", null);
 __decorate([
     (0, common_1.Post)("staff/verify"),
-    (0, swagger_1.ApiOperation)({ summary: "Verify staff account" }),
-    (0, swagger_1.ApiOkResponse)({ description: "Staff account verified" }),
-    (0, swagger_1.ApiUnauthorizedResponse)({ description: "Invalid token" }),
+    (0, swagger_1.ApiOperation)({
+        summary: "Verify staff account",
+        description: "Verify a staff account using the token received via email"
+    }),
+    (0, swagger_1.ApiOkResponse)({
+        description: "Staff account verified",
+        schema: {
+            type: "object",
+            properties: {
+                message: { type: "string", example: "Account verified successfully" }
+            }
+        }
+    }),
+    (0, swagger_1.ApiUnauthorizedResponse)({ description: "Invalid or expired token" }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [auth_dto_1.VerifyTokenDto]),
@@ -110,9 +176,18 @@ __decorate([
 ], AuthController.prototype, "verify", null);
 __decorate([
     (0, common_1.Post)("staff/request-reset"),
-    (0, swagger_1.ApiOperation)({ summary: "Request staff password reset token" }),
+    (0, swagger_1.ApiOperation)({
+        summary: "Request staff password reset token",
+        description: "Request a password reset email for a staff account. Does not reveal whether the email exists (for security)."
+    }),
     (0, swagger_1.ApiOkResponse)({
-        description: "Password reset request accepted. Always returns success to avoid user enumeration."
+        description: "Password reset request accepted. Always returns success to avoid user enumeration.",
+        schema: {
+            type: "object",
+            properties: {
+                message: { type: "string", example: "If the email exists, you will receive a password reset link" }
+            }
+        }
     }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -121,8 +196,19 @@ __decorate([
 ], AuthController.prototype, "requestReset", null);
 __decorate([
     (0, common_1.Post)("staff/reset"),
-    (0, swagger_1.ApiOperation)({ summary: "Reset staff password" }),
-    (0, swagger_1.ApiOkResponse)({ description: "Password reset successful" }),
+    (0, swagger_1.ApiOperation)({
+        summary: "Reset staff password",
+        description: "Set a new password using the token received via email"
+    }),
+    (0, swagger_1.ApiOkResponse)({
+        description: "Password reset successful",
+        schema: {
+            type: "object",
+            properties: {
+                message: { type: "string", example: "Password reset successfully" }
+            }
+        }
+    }),
     (0, swagger_1.ApiUnauthorizedResponse)({ description: "Invalid or expired token" }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -131,9 +217,18 @@ __decorate([
 ], AuthController.prototype, "reset", null);
 __decorate([
     (0, common_1.Post)("admin/request-reset"),
-    (0, swagger_1.ApiOperation)({ summary: "Request admin password reset token" }),
+    (0, swagger_1.ApiOperation)({
+        summary: "Request admin password reset token",
+        description: "Request a password reset email for an admin account. Does not reveal whether the email exists (for security)."
+    }),
     (0, swagger_1.ApiOkResponse)({
-        description: "Password reset request accepted. Always returns success to avoid user enumeration."
+        description: "Password reset request accepted. Always returns success to avoid user enumeration.",
+        schema: {
+            type: "object",
+            properties: {
+                message: { type: "string", example: "If the email exists, you will receive a password reset link" }
+            }
+        }
     }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -142,8 +237,19 @@ __decorate([
 ], AuthController.prototype, "requestAdminReset", null);
 __decorate([
     (0, common_1.Post)("admin/reset"),
-    (0, swagger_1.ApiOperation)({ summary: "Reset admin password" }),
-    (0, swagger_1.ApiOkResponse)({ description: "Admin password reset successful" }),
+    (0, swagger_1.ApiOperation)({
+        summary: "Reset admin password",
+        description: "Set a new admin password using the token received via email"
+    }),
+    (0, swagger_1.ApiOkResponse)({
+        description: "Admin password reset successful",
+        schema: {
+            type: "object",
+            properties: {
+                message: { type: "string", example: "Password reset successfully" }
+            }
+        }
+    }),
     (0, swagger_1.ApiUnauthorizedResponse)({ description: "Invalid or expired token" }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -152,9 +258,31 @@ __decorate([
 ], AuthController.prototype, "resetAdmin", null);
 __decorate([
     (0, common_1.Post)("register"),
-    (0, swagger_1.ApiOperation)({ summary: "Register organization admin" }),
-    (0, swagger_1.ApiOkResponse)({ description: "Admin registered successfully" }),
+    (0, swagger_1.ApiOperation)({
+        summary: "Register organization admin",
+        description: "Create a new organization admin account. Admin will need to verify email before full access."
+    }),
+    (0, swagger_1.ApiOkResponse)({
+        description: "Admin registered successfully - verification email sent",
+        schema: {
+            type: "object",
+            properties: {
+                user: {
+                    type: "object",
+                    properties: {
+                        id: { type: "string", example: "admin_123" },
+                        email: { type: "string", format: "email", example: "admin@org.com" },
+                        role: { type: "string", example: "admin" },
+                        orgId: { type: "string", example: "org_123abc" }
+                    }
+                },
+                verified: { type: "boolean", example: false },
+                message: { type: "string", example: "Verification email sent" }
+            }
+        }
+    }),
     (0, swagger_1.ApiUnauthorizedResponse)({ description: "Organization not found or plan limit reached" }),
+    (0, swagger_1.ApiConflictResponse)({ description: "Email already exists in organization" }),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
@@ -163,8 +291,20 @@ __decorate([
 ], AuthController.prototype, "register", null);
 __decorate([
     (0, common_1.Post)("admin/request-verify"),
-    (0, swagger_1.ApiOperation)({ summary: "Request admin verification token" }),
-    (0, swagger_1.ApiOkResponse)({ description: "Verification request accepted" }),
+    (0, swagger_1.ApiOperation)({
+        summary: "Request admin verification token",
+        description: "Request a verification email for admin account activation"
+    }),
+    (0, swagger_1.ApiOkResponse)({
+        description: "Verification request accepted",
+        schema: {
+            type: "object",
+            properties: {
+                message: { type: "string", example: "Verification email sent" }
+            }
+        }
+    }),
+    (0, swagger_1.ApiBadRequestResponse)({ description: "Invalid email address" }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [auth_dto_1.RequestAdminVerifyDto]),
@@ -172,8 +312,19 @@ __decorate([
 ], AuthController.prototype, "requestAdminVerify", null);
 __decorate([
     (0, common_1.Post)("admin/verify"),
-    (0, swagger_1.ApiOperation)({ summary: "Verify admin account" }),
-    (0, swagger_1.ApiOkResponse)({ description: "Admin account verified" }),
+    (0, swagger_1.ApiOperation)({
+        summary: "Verify admin account",
+        description: "Verify an admin account using the token received via email"
+    }),
+    (0, swagger_1.ApiOkResponse)({
+        description: "Admin account verified",
+        schema: {
+            type: "object",
+            properties: {
+                message: { type: "string", example: "Account verified successfully" }
+            }
+        }
+    }),
     (0, swagger_1.ApiUnauthorizedResponse)({ description: "Invalid or expired token" }),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Res)({ passthrough: true })),
@@ -183,9 +334,24 @@ __decorate([
 ], AuthController.prototype, "verifyAdmin", null);
 __decorate([
     (0, common_1.Get)("me"),
-    (0, swagger_1.ApiOperation)({ summary: "Get current authenticated user" }),
+    (0, swagger_1.ApiOperation)({
+        summary: "Get current authenticated user",
+        description: "Retrieve the profile information of the currently authenticated user"
+    }),
     (0, swagger_1.ApiCookieAuth)("cookieAuth"),
-    (0, swagger_1.ApiOkResponse)({ description: "Authenticated user payload" }),
+    (0, swagger_1.ApiOkResponse)({
+        description: "Authenticated user payload",
+        schema: {
+            type: "object",
+            properties: {
+                id: { type: "string", example: "admin_123" },
+                email: { type: "string", format: "email", example: "admin@org.com" },
+                role: { type: "string", example: "admin" },
+                orgId: { type: "string", example: "org_123abc" },
+                verified: { type: "boolean", example: true }
+            }
+        }
+    }),
     (0, swagger_1.ApiUnauthorizedResponse)({ description: "Authentication required" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt")),
     __param(0, (0, common_1.Req)()),
@@ -195,9 +361,21 @@ __decorate([
 ], AuthController.prototype, "me", null);
 __decorate([
     (0, common_1.Post)("logout"),
-    (0, swagger_1.ApiOperation)({ summary: "Logout current user" }),
+    (0, swagger_1.ApiOperation)({
+        summary: "Logout current user",
+        description: "Clear the session by removing the authentication cookie"
+    }),
     (0, swagger_1.ApiCookieAuth)("cookieAuth"),
-    (0, swagger_1.ApiOkResponse)({ description: "Session cookie cleared" }),
+    (0, swagger_1.ApiOkResponse)({
+        description: "Session cookie cleared",
+        schema: {
+            type: "object",
+            properties: {
+                ok: { type: "boolean", example: true },
+                message: { type: "string", example: "Logged out successfully" }
+            }
+        }
+    }),
     __param(0, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),

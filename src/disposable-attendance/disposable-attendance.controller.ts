@@ -16,6 +16,8 @@ import { AuthGuard } from "@nestjs/passport";
 import {
   ApiBody,
   ApiCookieAuth,
+  ApiCreatedResponse,
+  ApiNotFoundResponse,
   ApiForbiddenResponse,
   ApiOkResponse,
   ApiOperation,
@@ -50,9 +52,40 @@ export class DisposableAttendanceController {
 
   @Get("disposable-attendance")
   @ApiCookieAuth("cookieAuth")
-  @ApiOperation({ summary: "List disposable attendance forms by organization" })
-  @ApiQuery({ name: "orgId", type: String, required: true })
-  @ApiOkResponse({ description: "Disposable attendance list returned" })
+  @ApiOperation({
+    summary: "List disposable attendance forms by organization",
+    description: "Retrieve all custom attendance forms (disposable attendance) created for the organization"
+  })
+  @ApiQuery({
+    name: "orgId",
+    type: String,
+    required: true,
+    description: "Organization ID",
+    example: "org_123abc"
+  })
+  @ApiOkResponse({
+    description: "Disposable attendance list returned",
+    schema: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          id: { type: "string", example: "form_123" },
+          organizationId: { type: "string", example: "org_123abc" },
+          title: { type: "string", example: "Team Outing" },
+          description: { type: "string", nullable: true },
+          location: { type: "string", nullable: true },
+          eventDateISO: { type: "string", format: "date" },
+          fields: { type: "array", items: { type: "object" } },
+          isRecurring: { type: "boolean" },
+          recurrenceMode: { type: "string", enum: ["none", "daily", "weekly", "monthly", "custom"] },
+          isArchived: { type: "boolean" },
+          publicId: { type: "string", nullable: true },
+          responseCount: { type: "number" }
+        }
+      }
+    }
+  })
   @ApiForbiddenResponse({ description: "Authentication/authorization failed" })
   @UseGuards(AuthGuard("jwt"), PermissionsGuard)
   @Permissions("manage_attendance")
@@ -66,26 +99,99 @@ export class DisposableAttendanceController {
 
   @Post("disposable-attendance")
   @ApiCookieAuth("cookieAuth")
-  @ApiOperation({ summary: "Create disposable attendance" })
+  @ApiOperation({
+    summary: "Create disposable attendance",
+    description: "Create a new custom attendance form for collecting staff attendance in special events or situations"
+  })
   @ApiBody({
     schema: {
       type: "object",
       required: ["orgId", "title", "eventDateISO", "fields", "isRecurring", "recurrenceMode"],
       properties: {
-        orgId: { type: "string" },
-        title: { type: "string" },
-        description: { type: "string" },
-        location: { type: "string" },
-        eventDateISO: { type: "string", example: "2026-04-10" },
-        fields: { type: "array", items: { type: "object" } },
-        isRecurring: { type: "boolean" },
-        recurrenceMode: { type: "string", enum: ["none", "daily", "weekly", "monthly", "custom"] },
-        recurrenceEndDateISO: { type: "string", nullable: true },
-        recurrenceCustomRule: { type: "string" }
+        orgId: {
+          type: "string",
+          description: "Organization ID",
+          example: "org_123abc"
+        },
+        title: {
+          type: "string",
+          description: "Title of the attendance form",
+          example: "Team Outing"
+        },
+        description: {
+          type: "string",
+          nullable: true,
+          description: "Detailed description of the event",
+          example: "Annual team building event"
+        },
+        location: {
+          type: "string",
+          nullable: true,
+          description: "Location of the event",
+          example: "Conference Hall A"
+        },
+        eventDateISO: {
+          type: "string",
+          format: "date",
+          description: "Event date in ISO format",
+          example: "2026-04-10"
+        },
+        fields: {
+          type: "array",
+          description: "Custom fields to collect from respondents",
+          items: {
+            type: "object",
+            required: ["id", "label", "type", "required"],
+            properties: {
+              id: { type: "string", example: "field_1" },
+              label: { type: "string", example: "Full Name" },
+              type: {
+                type: "string",
+                enum: ["full-name", "email", "phone", "occupation", "address", "text"],
+                example: "full-name"
+              },
+              required: { type: "boolean", example: true }
+            }
+          }
+        },
+        isRecurring: {
+          type: "boolean",
+          description: "Whether this form recurs",
+          example: false
+        },
+        recurrenceMode: {
+          type: "string",
+          enum: ["none", "daily", "weekly", "monthly", "custom"],
+          description: "Recurrence pattern if isRecurring is true",
+          example: "none"
+        },
+        recurrenceEndDateISO: {
+          type: "string",
+          format: "date",
+          nullable: true,
+          description: "End date for recurring forms"
+        },
+        recurrenceCustomRule: {
+          type: "string",
+          nullable: true,
+          description: "Custom RRULE for recurrence"
+        }
       }
     }
   })
-  @ApiOkResponse({ description: "Disposable attendance created" })
+  @ApiCreatedResponse({
+    description: "Disposable attendance created",
+    schema: {
+      type: "object",
+      properties: {
+        id: { type: "string" },
+        organizationId: { type: "string" },
+        title: { type: "string" },
+        eventDateISO: { type: "string", format: "date" },
+        publicId: { type: "string" }
+      }
+    }
+  })
   @ApiForbiddenResponse({ description: "Authentication/authorization failed" })
   @UseGuards(AuthGuard("jwt"), PermissionsGuard)
   @Permissions("manage_attendance")
@@ -116,9 +222,39 @@ export class DisposableAttendanceController {
 
   @Patch("disposable-attendance/:id")
   @ApiCookieAuth("cookieAuth")
-  @ApiOperation({ summary: "Update disposable attendance" })
-  @ApiParam({ name: "id", type: String })
-  @ApiOkResponse({ description: "Disposable attendance updated" })
+  @ApiOperation({
+    summary: "Update disposable attendance",
+    description: "Modify an existing custom attendance form"
+  })
+  @ApiParam({
+    name: "id",
+    type: String,
+    description: "Form ID",
+    example: "form_123"
+  })
+  @ApiBody({
+    schema: {
+      type: "object",
+      required: ["orgId"],
+      properties: {
+        orgId: { type: "string" },
+        title: { type: "string" },
+        description: { type: "string", nullable: true },
+        location: { type: "string", nullable: true },
+        eventDateISO: { type: "string", format: "date" },
+        fields: { type: "array", items: { type: "object" } },
+        isRecurring: { type: "boolean" },
+        recurrenceMode: { type: "string", enum: ["none", "daily", "weekly", "monthly", "custom"] },
+        recurrenceEndDateISO: { type: "string", format: "date", nullable: true },
+        recurrenceCustomRule: { type: "string", nullable: true },
+        isArchived: { type: "boolean" }
+      }
+    }
+  })
+  @ApiOkResponse({
+    description: "Disposable attendance updated"
+  })
+  @ApiNotFoundResponse({ description: "Form not found" })
   @ApiForbiddenResponse({ description: "Authentication/authorization failed" })
   @UseGuards(AuthGuard("jwt"), PermissionsGuard)
   @Permissions("manage_attendance")
@@ -151,10 +287,27 @@ export class DisposableAttendanceController {
 
   @Delete("disposable-attendance/:id")
   @ApiCookieAuth("cookieAuth")
-  @ApiOperation({ summary: "Delete disposable attendance" })
-  @ApiParam({ name: "id", type: String })
-  @ApiQuery({ name: "orgId", type: String, required: true })
-  @ApiOkResponse({ description: "Disposable attendance deleted" })
+  @ApiOperation({
+    summary: "Delete disposable attendance",
+    description: "Remove a custom attendance form from the organization"
+  })
+  @ApiParam({
+    name: "id",
+    type: String,
+    description: "Form ID",
+    example: "form_123"
+  })
+  @ApiQuery({
+    name: "orgId",
+    type: String,
+    required: true,
+    description: "Organization ID",
+    example: "org_123abc"
+  })
+  @ApiOkResponse({
+    description: "Disposable attendance deleted"
+  })
+  @ApiNotFoundResponse({ description: "Form not found" })
   @ApiForbiddenResponse({ description: "Authentication/authorization failed" })
   @UseGuards(AuthGuard("jwt"), PermissionsGuard)
   @Permissions("manage_attendance")
@@ -174,9 +327,22 @@ export class DisposableAttendanceController {
     description: "Deprecated: use GET /disposable-attendance/:id/responses-table for UI table rendering.",
     deprecated: true
   })
-  @ApiParam({ name: "id", type: String })
-  @ApiQuery({ name: "orgId", type: String, required: true })
-  @ApiOkResponse({ description: "Disposable attendance responses returned" })
+  @ApiParam({
+    name: "id",
+    type: String,
+    description: "Form ID",
+    example: "form_123"
+  })
+  @ApiQuery({
+    name: "orgId",
+    type: String,
+    required: true,
+    description: "Organization ID",
+    example: "org_123abc"
+  })
+  @ApiOkResponse({
+    description: "Disposable attendance responses returned"
+  })
   @ApiForbiddenResponse({ description: "Authentication/authorization failed" })
   @UseGuards(AuthGuard("jwt"), PermissionsGuard)
   @Permissions("manage_attendance")
@@ -191,10 +357,26 @@ export class DisposableAttendanceController {
 
   @Get("disposable-attendance/:id/responses-table")
   @ApiCookieAuth("cookieAuth")
-  @ApiOperation({ summary: "Get disposable attendance responses formatted for table rendering" })
-  @ApiParam({ name: "id", type: String })
-  @ApiQuery({ name: "orgId", type: String, required: true })
-  @ApiOkResponse({ description: "Formatted disposable attendance response table returned" })
+  @ApiOperation({
+    summary: "Get disposable attendance responses formatted for table rendering",
+    description: "Retrieve responses in a formatted structure optimized for UI table display"
+  })
+  @ApiParam({
+    name: "id",
+    type: String,
+    description: "Form ID",
+    example: "form_123"
+  })
+  @ApiQuery({
+    name: "orgId",
+    type: String,
+    required: true,
+    description: "Organization ID",
+    example: "org_123abc"
+  })
+  @ApiOkResponse({
+    description: "Formatted disposable attendance response table returned"
+  })
   @ApiForbiddenResponse({ description: "Authentication/authorization failed" })
   @UseGuards(AuthGuard("jwt"), PermissionsGuard)
   @Permissions("manage_attendance")
@@ -209,8 +391,16 @@ export class DisposableAttendanceController {
 
   @Patch("disposable-attendance/:id/fields")
   @ApiCookieAuth("cookieAuth")
-  @ApiOperation({ summary: "Update collected details (fields) for a disposable attendance" })
-  @ApiParam({ name: "id", type: String })
+  @ApiOperation({
+    summary: "Update collected details (fields) for a disposable attendance",
+    description: "Modify the custom fields that respondents need to fill"
+  })
+  @ApiParam({
+    name: "id",
+    type: String,
+    description: "Form ID",
+    example: "form_123"
+  })
   @ApiBody({
     schema: {
       type: "object",
@@ -260,19 +450,33 @@ export class DisposableAttendanceController {
 
   @Post("disposable-attendance/:id/responses/admin")
   @ApiCookieAuth("cookieAuth")
-  @ApiOperation({ summary: "Submit admin/manual disposable attendance response" })
-  @ApiParam({ name: "id", type: String })
+  @ApiOperation({
+    summary: "Submit admin/manual disposable attendance response",
+    description: "Create a response entry for a form as an administrator (manual entry)"
+  })
+  @ApiParam({
+    name: "id",
+    type: String,
+    description: "Form ID",
+    example: "form_123"
+  })
   @ApiBody({
     schema: {
       type: "object",
       required: ["orgId", "values"],
       properties: {
         orgId: { type: "string" },
-        values: { type: "object", additionalProperties: { type: "string" } }
+        values: {
+          type: "object",
+          additionalProperties: { type: "string" },
+          description: "Field values submitted in the form"
+        }
       }
     }
   })
-  @ApiOkResponse({ description: "Admin response submitted" })
+  @ApiCreatedResponse({
+    description: "Admin response submitted"
+  })
   @ApiForbiddenResponse({ description: "Authentication/authorization failed" })
   @UseGuards(AuthGuard("jwt"), PermissionsGuard)
   @Permissions("manage_attendance")
@@ -292,10 +496,26 @@ export class DisposableAttendanceController {
 
   @Get("disposable-attendance/:id/export.csv")
   @ApiCookieAuth("cookieAuth")
-  @ApiOperation({ summary: "Export disposable attendance responses as CSV" })
-  @ApiParam({ name: "id", type: String })
-  @ApiQuery({ name: "orgId", type: String, required: true })
-  @ApiOkResponse({ description: "CSV export returned" })
+  @ApiOperation({
+    summary: "Export disposable attendance responses as CSV",
+    description: "Download all responses for a form as a CSV file"
+  })
+  @ApiParam({
+    name: "id",
+    type: String,
+    description: "Form ID",
+    example: "form_123"
+  })
+  @ApiQuery({
+    name: "orgId",
+    type: String,
+    required: true,
+    description: "Organization ID",
+    example: "org_123abc"
+  })
+  @ApiOkResponse({
+    description: "CSV export returned - binary file content"
+  })
   @ApiForbiddenResponse({ description: "Authentication/authorization failed" })
   @UseGuards(AuthGuard("jwt"), PermissionsGuard)
   @Permissions("manage_attendance")
@@ -316,26 +536,69 @@ export class DisposableAttendanceController {
   }
 
   @Get("public/disposable-attendance/:publicId")
-  @ApiOperation({ summary: "Get public disposable attendance form" })
-  @ApiParam({ name: "publicId", type: String })
-  @ApiOkResponse({ description: "Public disposable attendance form returned" })
+  @ApiOperation({
+    summary: "Get public disposable attendance form",
+    description: "Retrieve a publicly accessible attendance form using its public ID (no authentication required)"
+  })
+  @ApiParam({
+    name: "publicId",
+    type: String,
+    description: "Public form ID",
+    example: "pub_12345"
+  })
+  @ApiOkResponse({
+    description: "Public disposable attendance form returned",
+    schema: {
+      type: "object",
+      properties: {
+        id: { type: "string" },
+        title: { type: "string" },
+        description: { type: "string", nullable: true },
+        location: { type: "string", nullable: true },
+        eventDateISO: { type: "string", format: "date" },
+        fields: { type: "array", items: { type: "object" } }
+      }
+    }
+  })
+  @ApiNotFoundResponse({ description: "Form not found or link expired" })
   getPublicForm(@Param("publicId") publicId: string) {
     return this.disposableService.getPublicForm(publicId);
   }
 
   @Post("public/disposable-attendance/:publicId/check-in")
-  @ApiOperation({ summary: "Submit public disposable attendance check-in" })
-  @ApiParam({ name: "publicId", type: String })
+  @ApiOperation({
+    summary: "Submit public disposable attendance check-in",
+    description: "Submit a response to a publicly accessible attendance form (no authentication required)"
+  })
+  @ApiParam({
+    name: "publicId",
+    type: String,
+    description: "Public form ID",
+    example: "pub_12345"
+  })
   @ApiBody({
     schema: {
       type: "object",
       required: ["values"],
       properties: {
-        values: { type: "object", additionalProperties: { type: "string" } }
+        values: {
+          type: "object",
+          additionalProperties: { type: "string" },
+          description: "Form field values submitted by the respondent"
+        }
       }
     }
   })
-  @ApiOkResponse({ description: "Public check-in submitted" })
+  @ApiCreatedResponse({
+    description: "Public check-in submitted",
+    schema: {
+      type: "object",
+      properties: {
+        message: { type: "string", example: "Thank you for your response" }
+      }
+    }
+  })
+  @ApiNotFoundResponse({ description: "Form not found or link expired" })
   submitPublicResponse(
     @Param("publicId") publicId: string,
     @Body() body: { values: Record<string, string> }

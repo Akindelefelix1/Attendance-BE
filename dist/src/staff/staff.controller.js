@@ -63,9 +63,35 @@ let StaffController = class StaffController {
 exports.StaffController = StaffController;
 __decorate([
     (0, common_1.Get)("organization/:orgId"),
-    (0, swagger_1.ApiOperation)({ summary: "List staff by organization" }),
-    (0, swagger_1.ApiParam)({ name: "orgId", type: String }),
-    (0, swagger_1.ApiOkResponse)({ description: "Staff list returned" }),
+    (0, swagger_1.ApiOperation)({
+        summary: "List staff by organization",
+        description: "Retrieve all staff members for a specific organization"
+    }),
+    (0, swagger_1.ApiParam)({
+        name: "orgId",
+        type: String,
+        description: "Organization ID",
+        example: "org_123abc"
+    }),
+    (0, swagger_1.ApiOkResponse)({
+        description: "Staff list returned",
+        schema: {
+            type: "array",
+            items: {
+                type: "object",
+                properties: {
+                    id: { type: "string", example: "staff_123" },
+                    organizationId: { type: "string", example: "org_123abc" },
+                    fullName: { type: "string", example: "John Doe" },
+                    email: { type: "string", format: "email", example: "john@org.com" },
+                    role: { type: "string", example: "manager" },
+                    verified: { type: "boolean", example: true },
+                    createdAt: { type: "string", format: "date-time" },
+                    updatedAt: { type: "string", format: "date-time", nullable: true }
+                }
+            }
+        }
+    }),
     (0, swagger_1.ApiUnauthorizedResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_staff"),
@@ -77,20 +103,53 @@ __decorate([
 ], StaffController.prototype, "listByOrganization", null);
 __decorate([
     (0, common_1.Post)(),
-    (0, swagger_1.ApiOperation)({ summary: "Create staff member" }),
+    (0, swagger_1.ApiOperation)({
+        summary: "Create staff member",
+        description: "Add a new staff member to an organization. A verification email will be sent to the new staff member."
+    }),
     (0, swagger_1.ApiBody)({
         schema: {
             type: "object",
             required: ["organizationId", "fullName", "role", "email"],
             properties: {
-                organizationId: { type: "string" },
-                fullName: { type: "string" },
-                role: { type: "string" },
-                email: { type: "string", format: "email" }
+                organizationId: {
+                    type: "string",
+                    description: "Organization ID",
+                    example: "org_123abc"
+                },
+                fullName: {
+                    type: "string",
+                    description: "Full name of the staff member",
+                    example: "John Doe"
+                },
+                role: {
+                    type: "string",
+                    description: "Role/position in the organization",
+                    example: "manager"
+                },
+                email: {
+                    type: "string",
+                    format: "email",
+                    description: "Email address for staff member login and communication",
+                    example: "john@org.com"
+                }
             }
         }
     }),
-    (0, swagger_1.ApiOkResponse)({ description: "Staff member created" }),
+    (0, swagger_1.ApiCreatedResponse)({
+        description: "Staff member created",
+        schema: {
+            type: "object",
+            properties: {
+                id: { type: "string" },
+                organizationId: { type: "string" },
+                fullName: { type: "string" },
+                email: { type: "string", format: "email" },
+                role: { type: "string" },
+                verified: { type: "boolean" }
+            }
+        }
+    }),
     (0, swagger_1.ApiConflictResponse)({
         description: "This staff email has already been added for this organization"
     }),
@@ -105,19 +164,42 @@ __decorate([
 ], StaffController.prototype, "create", null);
 __decorate([
     (0, common_1.Patch)(":id"),
-    (0, swagger_1.ApiOperation)({ summary: "Update staff member" }),
-    (0, swagger_1.ApiParam)({ name: "id", type: String }),
+    (0, swagger_1.ApiOperation)({
+        summary: "Update staff member",
+        description: "Modify staff member information. Staff can only update their own information unless they are an admin."
+    }),
+    (0, swagger_1.ApiParam)({
+        name: "id",
+        type: String,
+        description: "Staff member ID",
+        example: "staff_123"
+    }),
     (0, swagger_1.ApiBody)({
         schema: {
             type: "object",
             properties: {
-                fullName: { type: "string" },
-                role: { type: "string" },
-                email: { type: "string", format: "email" }
+                fullName: {
+                    type: "string",
+                    description: "Updated full name",
+                    example: "John Doe"
+                },
+                role: {
+                    type: "string",
+                    description: "Updated role",
+                    example: "senior_manager"
+                },
+                email: {
+                    type: "string",
+                    format: "email",
+                    description: "Updated email address",
+                    example: "john.doe@org.com"
+                }
             }
         }
     }),
-    (0, swagger_1.ApiOkResponse)({ description: "Staff member updated" }),
+    (0, swagger_1.ApiOkResponse)({
+        description: "Staff member updated"
+    }),
     (0, swagger_1.ApiConflictResponse)({
         description: "This staff email has already been added for this organization"
     }),
@@ -133,9 +215,20 @@ __decorate([
 ], StaffController.prototype, "update", null);
 __decorate([
     (0, common_1.Delete)(":id"),
-    (0, swagger_1.ApiOperation)({ summary: "Delete staff member" }),
-    (0, swagger_1.ApiParam)({ name: "id", type: String }),
-    (0, swagger_1.ApiOkResponse)({ description: "Staff member deleted" }),
+    (0, swagger_1.ApiOperation)({
+        summary: "Delete staff member",
+        description: "Remove a staff member from the organization. Staff can only delete themselves unless they are an admin."
+    }),
+    (0, swagger_1.ApiParam)({
+        name: "id",
+        type: String,
+        description: "Staff member ID",
+        example: "staff_123"
+    }),
+    (0, swagger_1.ApiOkResponse)({
+        description: "Staff member deleted"
+    }),
+    (0, swagger_1.ApiNotFoundResponse)({ description: "Staff member not found" }),
     (0, swagger_1.ApiUnauthorizedResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_staff"),

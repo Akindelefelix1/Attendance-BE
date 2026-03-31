@@ -63,11 +63,33 @@ let AttendanceController = class AttendanceController {
 exports.AttendanceController = AttendanceController;
 __decorate([
     (0, common_1.Get)(),
-    (0, swagger_1.ApiOperation)({ summary: "List attendance by organization and date" }),
-    (0, swagger_1.ApiQuery)({ name: "orgId", type: String, required: true }),
-    (0, swagger_1.ApiQuery)({ name: "dateISO", type: String, required: true }),
-    (0, swagger_1.ApiOkResponse)({ description: "Attendance records returned" }),
-    (0, swagger_1.ApiUnauthorizedResponse)({ description: "Authentication/authorization failed" }),
+    (0, swagger_1.ApiOperation)({
+        summary: "List attendance by organization and date",
+        description: "Retrieve attendance records for a specific organization on a specific date"
+    }),
+    (0, swagger_1.ApiQuery)({ name: "orgId", type: String, required: true, description: "Organization ID", example: "org_123abc" }),
+    (0, swagger_1.ApiQuery)({ name: "dateISO", type: String, required: true, description: "Date in ISO format (YYYY-MM-DD)", example: "2026-03-31" }),
+    (0, swagger_1.ApiOkResponse)({
+        description: "Attendance records returned",
+        schema: {
+            type: "array",
+            items: {
+                type: "object",
+                properties: {
+                    id: { type: "string", example: "att_123" },
+                    staffId: { type: "string", example: "staff_123" },
+                    organizationId: { type: "string", example: "org_123abc" },
+                    dateISO: { type: "string", format: "date", example: "2026-03-31" },
+                    signInTime: { type: "string", format: "date-time", nullable: true },
+                    signOutTime: { type: "string", format: "date-time", nullable: true },
+                    isLate: { type: "boolean", example: false },
+                    isEarlyCheckout: { type: "boolean", example: false },
+                    status: { type: "string", enum: ["present", "absent", "leave"] }
+                }
+            }
+        }
+    }),
+    (0, swagger_1.ApiForbiddenResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_attendance"),
     __param(0, (0, common_1.Query)()),
@@ -78,10 +100,29 @@ __decorate([
 ], AttendanceController.prototype, "list", null);
 __decorate([
     (0, common_1.Get)("organization/:orgId"),
-    (0, swagger_1.ApiOperation)({ summary: "List attendance for organization" }),
-    (0, swagger_1.ApiParam)({ name: "orgId", type: String }),
-    (0, swagger_1.ApiOkResponse)({ description: "Attendance records returned" }),
-    (0, swagger_1.ApiUnauthorizedResponse)({ description: "Authentication/authorization failed" }),
+    (0, swagger_1.ApiOperation)({
+        summary: "List attendance for organization",
+        description: "Retrieve all attendance records for an organization (across all dates)"
+    }),
+    (0, swagger_1.ApiParam)({ name: "orgId", type: String, description: "Organization ID", example: "org_123abc" }),
+    (0, swagger_1.ApiOkResponse)({
+        description: "Attendance records returned",
+        schema: {
+            type: "array",
+            items: {
+                type: "object",
+                properties: {
+                    id: { type: "string" },
+                    staffId: { type: "string" },
+                    organizationId: { type: "string" },
+                    dateISO: { type: "string", format: "date" },
+                    signInTime: { type: "string", format: "date-time", nullable: true },
+                    signOutTime: { type: "string", format: "date-time", nullable: true }
+                }
+            }
+        }
+    }),
+    (0, swagger_1.ApiForbiddenResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_attendance"),
     __param(0, (0, common_1.Param)("orgId")),
@@ -92,9 +133,60 @@ __decorate([
 ], AttendanceController.prototype, "listForOrganization", null);
 __decorate([
     (0, common_1.Post)("sign-in"),
-    (0, swagger_1.ApiOperation)({ summary: "Sign in staff attendance" }),
-    (0, swagger_1.ApiOkResponse)({ description: "Sign-in recorded" }),
-    (0, swagger_1.ApiUnauthorizedResponse)({ description: "Authentication/authorization failed" }),
+    (0, swagger_1.ApiOperation)({
+        summary: "Sign in staff attendance",
+        description: "Record a staff member's sign-in (arrival). Can include GPS location for geofence validation."
+    }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: "object",
+            required: ["organizationId", "staffId", "dateISO"],
+            properties: {
+                organizationId: {
+                    type: "string",
+                    description: "Organization ID",
+                    example: "org_123abc"
+                },
+                staffId: {
+                    type: "string",
+                    description: "Staff member ID",
+                    example: "staff_123"
+                },
+                dateISO: {
+                    type: "string",
+                    format: "date",
+                    description: "Attendance date in ISO format",
+                    example: "2026-03-31"
+                },
+                latitude: {
+                    type: "number",
+                    nullable: true,
+                    description: "GPS latitude for geofence validation",
+                    example: 40.7128
+                },
+                longitude: {
+                    type: "number",
+                    nullable: true,
+                    description: "GPS longitude for geofence validation",
+                    example: -74.006
+                }
+            }
+        }
+    }),
+    (0, swagger_1.ApiOkResponse)({
+        description: "Sign-in recorded",
+        schema: {
+            type: "object",
+            properties: {
+                id: { type: "string" },
+                staffId: { type: "string" },
+                signInTime: { type: "string", format: "date-time" },
+                isLate: { type: "boolean" },
+                isOutsideGeofence: { type: "boolean" }
+            }
+        }
+    }),
+    (0, swagger_1.ApiForbiddenResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_attendance"),
     __param(0, (0, common_1.Body)()),
@@ -105,9 +197,60 @@ __decorate([
 ], AttendanceController.prototype, "signIn", null);
 __decorate([
     (0, common_1.Post)("sign-out"),
-    (0, swagger_1.ApiOperation)({ summary: "Sign out staff attendance" }),
-    (0, swagger_1.ApiOkResponse)({ description: "Sign-out recorded" }),
-    (0, swagger_1.ApiUnauthorizedResponse)({ description: "Authentication/authorization failed" }),
+    (0, swagger_1.ApiOperation)({
+        summary: "Sign out staff attendance",
+        description: "Record a staff member's sign-out (departure). Can include GPS location for geofence validation."
+    }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: "object",
+            required: ["organizationId", "staffId", "dateISO"],
+            properties: {
+                organizationId: {
+                    type: "string",
+                    description: "Organization ID",
+                    example: "org_123abc"
+                },
+                staffId: {
+                    type: "string",
+                    description: "Staff member ID",
+                    example: "staff_123"
+                },
+                dateISO: {
+                    type: "string",
+                    format: "date",
+                    description: "Attendance date in ISO format",
+                    example: "2026-03-31"
+                },
+                latitude: {
+                    type: "number",
+                    nullable: true,
+                    description: "GPS latitude for geofence validation",
+                    example: 40.7128
+                },
+                longitude: {
+                    type: "number",
+                    nullable: true,
+                    description: "GPS longitude for geofence validation",
+                    example: -74.006
+                }
+            }
+        }
+    }),
+    (0, swagger_1.ApiOkResponse)({
+        description: "Sign-out recorded",
+        schema: {
+            type: "object",
+            properties: {
+                id: { type: "string" },
+                staffId: { type: "string" },
+                signOutTime: { type: "string", format: "date-time" },
+                isEarlyCheckout: { type: "boolean" },
+                isOutsideGeofence: { type: "boolean" }
+            }
+        }
+    }),
+    (0, swagger_1.ApiForbiddenResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("manage_attendance"),
     __param(0, (0, common_1.Body)()),

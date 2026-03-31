@@ -43,11 +43,76 @@ let AnalyticsController = class AnalyticsController {
 exports.AnalyticsController = AnalyticsController;
 __decorate([
     (0, common_1.Get)(),
-    (0, swagger_1.ApiOperation)({ summary: "Get analytics by organization" }),
-    (0, swagger_1.ApiQuery)({ name: "orgId", type: String, required: true }),
-    (0, swagger_1.ApiQuery)({ name: "range", required: false, enum: ["week", "month"] }),
-    (0, swagger_1.ApiQuery)({ name: "filter", required: false, enum: ["all", "late", "early", "absent"] }),
-    (0, swagger_1.ApiOkResponse)({ description: "Analytics payload returned" }),
+    (0, swagger_1.ApiOperation)({
+        summary: "Get analytics by organization",
+        description: "Retrieve attendance analytics and statistics for an organization with optional filtering and date range selection"
+    }),
+    (0, swagger_1.ApiQuery)({
+        name: "orgId",
+        type: String,
+        required: true,
+        description: "Organization ID",
+        example: "org_123abc"
+    }),
+    (0, swagger_1.ApiQuery)({
+        name: "range",
+        required: false,
+        enum: ["week", "month"],
+        description: "Time range for analytics",
+        example: "week"
+    }),
+    (0, swagger_1.ApiQuery)({
+        name: "filter",
+        required: false,
+        enum: ["all", "late", "early", "absent"],
+        description: "Filter analytics by attendance status",
+        example: "all"
+    }),
+    (0, swagger_1.ApiOkResponse)({
+        description: "Analytics payload returned",
+        schema: {
+            type: "object",
+            properties: {
+                organizationId: { type: "string", example: "org_123abc" },
+                range: { type: "string", enum: ["week", "month"], example: "week" },
+                filter: { type: "string", enum: ["all", "late", "early", "absent"], example: "all" },
+                totalStaff: { type: "number", example: 45 },
+                presentCount: { type: "number", example: 42 },
+                absentCount: { type: "number", example: 3 },
+                lateCount: { type: "number", example: 8 },
+                earlyCheckoutCount: { type: "number", example: 5 },
+                averageArrivalTime: { type: "string", example: "08:45:00" },
+                averageDepartureTime: { type: "string", example: "17:30:00" },
+                dailyBreakdown: {
+                    type: "array",
+                    items: {
+                        type: "object",
+                        properties: {
+                            dateISO: { type: "string", format: "date" },
+                            presentCount: { type: "number" },
+                            absentCount: { type: "number" },
+                            lateCount: { type: "number" },
+                            earlyCheckoutCount: { type: "number" }
+                        }
+                    }
+                },
+                staffBreakdown: {
+                    type: "array",
+                    items: {
+                        type: "object",
+                        properties: {
+                            staffId: { type: "string" },
+                            fullName: { type: "string" },
+                            presentDays: { type: "number" },
+                            absentDays: { type: "number" },
+                            lateDays: { type: "number" },
+                            earlyCheckoutDays: { type: "number" }
+                        }
+                    }
+                }
+            }
+        }
+    }),
     (0, swagger_1.ApiForbiddenResponse)({ description: "Authentication/authorization failed" }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
     (0, permissions_decorator_1.Permissions)("view_analytics"),
