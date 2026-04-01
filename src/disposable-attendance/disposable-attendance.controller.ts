@@ -503,6 +503,48 @@ export class DisposableAttendanceController {
     );
   }
 
+  @Post("disposable-attendance/:id/responses/:responseId/check-in")
+  @ApiCookieAuth("cookieAuth")
+  @ApiOperation({
+    summary: "Check in a pre-registered attendee by response",
+    description:
+      "For pre-register enabled events, admin can check in an attendee directly from response rows"
+  })
+  @ApiParam({ name: "id", type: String, description: "Form ID", example: "form_123" })
+  @ApiParam({
+    name: "responseId",
+    type: String,
+    description: "Response ID",
+    example: "resp_123"
+  })
+  @ApiBody({
+    schema: {
+      type: "object",
+      required: ["orgId"],
+      properties: {
+        orgId: { type: "string" }
+      }
+    }
+  })
+  @ApiCreatedResponse({ description: "Attendee checked in" })
+  @ApiForbiddenResponse({ description: "Authentication/authorization failed" })
+  @UseGuards(AuthGuard("jwt"), PermissionsGuard)
+  @Permissions("manage_attendance")
+  checkInPreRegisteredResponse(
+    @Param("id") id: string,
+    @Param("responseId") responseId: string,
+    @Body() body: { orgId: string },
+    @Req() req: { user?: { orgId?: string; role?: string; id?: string } }
+  ) {
+    this.assertOrgScope(body.orgId, req.user);
+    return this.disposableService.checkInPreRegisteredResponse(
+      id,
+      responseId,
+      body.orgId,
+      req.user?.id ?? ""
+    );
+  }
+
   @Get("disposable-attendance/:id/export.csv")
   @ApiCookieAuth("cookieAuth")
   @ApiOperation({
@@ -591,6 +633,11 @@ export class DisposableAttendanceController {
       type: "object",
       required: ["values"],
       properties: {
+        action: {
+          type: "string",
+          enum: ["auto", "preregister", "checkin"],
+          description: "Optional submit action to force pre-register or check-in flow"
+        },
         values: {
           type: "object",
           additionalProperties: { type: "string" },
@@ -621,8 +668,16 @@ export class DisposableAttendanceController {
   @ApiNotFoundResponse({ description: "Form not found or link expired" })
   submitPublicResponse(
     @Param("publicId") publicId: string,
-    @Body() body: { values: Record<string, string> }
+    @Body()
+    body: {
+      values: Record<string, string>;
+      action?: "auto" | "preregister" | "checkin";
+    }
   ) {
-    return this.disposableService.submitPublicResponse(publicId, body.values);
+    return this.disposableService.submitPublicResponse(
+      publicId,
+      body.values,
+      body.action ?? "auto"
+    );
   }
 }

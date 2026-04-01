@@ -48,6 +48,7 @@ export declare class DisposableAttendanceService {
     private sanitizeResponseValues;
     private extractNormalizedEmail;
     private todayISO;
+    private toResponseDto;
     private toPublicId;
     listByOrg(orgId: string): Promise<{
         id: string;
@@ -154,6 +155,19 @@ export declare class DisposableAttendanceService {
             [x: string]: string;
         };
     }>;
+    checkInPreRegisteredResponse(attendanceId: string, responseId: string, orgId: string, adminUserId: string): Promise<{
+        action: string;
+        message: string;
+        id: string;
+        attendanceId: string;
+        source: string;
+        submittedById: string | null;
+        status: string;
+        preRegisteredAtISO: string | null;
+        checkedInAtISO: string | null;
+        submittedAtISO: string;
+        values: Record<string, string>;
+    }>;
     getPublicForm(publicId: string): Promise<{
         publicId: string;
         title: string;
@@ -168,7 +182,7 @@ export declare class DisposableAttendanceService {
         recurrenceCustomRule: string;
         allowPreRegister: boolean;
     }>;
-    submitPublicResponse(publicId: string, values: Record<string, string>): Promise<{
+    submitPublicResponse(publicId: string, values: Record<string, string>, action?: "auto" | "preregister" | "checkin"): Promise<{
         id: string;
         attendanceId: string;
         source: string;

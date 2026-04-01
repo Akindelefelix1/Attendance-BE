@@ -67,6 +67,10 @@ let DisposableAttendanceController = class DisposableAttendanceController {
         this.assertOrgScope(body.orgId, req.user);
         return this.disposableService.submitAdminResponse(id, body.orgId, body.values, req.user?.id ?? "");
     }
+    checkInPreRegisteredResponse(id, responseId, body, req) {
+        this.assertOrgScope(body.orgId, req.user);
+        return this.disposableService.checkInPreRegisteredResponse(id, responseId, body.orgId, req.user?.id ?? "");
+    }
     async exportCsv(id, orgId, req, res) {
         this.assertOrgScope(orgId, req.user);
         const exported = await this.disposableService.exportCsv(id, orgId);
@@ -78,7 +82,7 @@ let DisposableAttendanceController = class DisposableAttendanceController {
         return this.disposableService.getPublicForm(publicId);
     }
     submitPublicResponse(publicId, body) {
-        return this.disposableService.submitPublicResponse(publicId, body.values);
+        return this.disposableService.submitPublicResponse(publicId, body.values, body.action ?? "auto");
     }
 };
 exports.DisposableAttendanceController = DisposableAttendanceController;
@@ -477,6 +481,41 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], DisposableAttendanceController.prototype, "submitAdminResponse", null);
 __decorate([
+    (0, common_1.Post)("disposable-attendance/:id/responses/:responseId/check-in"),
+    (0, swagger_1.ApiCookieAuth)("cookieAuth"),
+    (0, swagger_1.ApiOperation)({
+        summary: "Check in a pre-registered attendee by response",
+        description: "For pre-register enabled events, admin can check in an attendee directly from response rows"
+    }),
+    (0, swagger_1.ApiParam)({ name: "id", type: String, description: "Form ID", example: "form_123" }),
+    (0, swagger_1.ApiParam)({
+        name: "responseId",
+        type: String,
+        description: "Response ID",
+        example: "resp_123"
+    }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: "object",
+            required: ["orgId"],
+            properties: {
+                orgId: { type: "string" }
+            }
+        }
+    }),
+    (0, swagger_1.ApiCreatedResponse)({ description: "Attendee checked in" }),
+    (0, swagger_1.ApiForbiddenResponse)({ description: "Authentication/authorization failed" }),
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
+    (0, permissions_decorator_1.Permissions)("manage_attendance"),
+    __param(0, (0, common_1.Param)("id")),
+    __param(1, (0, common_1.Param)("responseId")),
+    __param(2, (0, common_1.Body)()),
+    __param(3, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object, Object]),
+    __metadata("design:returntype", void 0)
+], DisposableAttendanceController.prototype, "checkInPreRegisteredResponse", null);
+__decorate([
     (0, common_1.Get)("disposable-attendance/:id/export.csv"),
     (0, swagger_1.ApiCookieAuth)("cookieAuth"),
     (0, swagger_1.ApiOperation)({
@@ -560,6 +599,11 @@ __decorate([
             type: "object",
             required: ["values"],
             properties: {
+                action: {
+                    type: "string",
+                    enum: ["auto", "preregister", "checkin"],
+                    description: "Optional submit action to force pre-register or check-in flow"
+                },
                 values: {
                     type: "object",
                     additionalProperties: { type: "string" },

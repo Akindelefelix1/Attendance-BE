@@ -227,6 +227,27 @@ export declare class DisposableAttendanceController {
             [x: string]: string;
         };
     }>;
+    checkInPreRegisteredResponse(id: string, responseId: string, body: {
+        orgId: string;
+    }, req: {
+        user?: {
+            orgId?: string;
+            role?: string;
+            id?: string;
+        };
+    }): Promise<{
+        action: string;
+        message: string;
+        id: string;
+        attendanceId: string;
+        source: string;
+        submittedById: string | null;
+        status: string;
+        preRegisteredAtISO: string | null;
+        checkedInAtISO: string | null;
+        submittedAtISO: string;
+        values: Record<string, string>;
+    }>;
     exportCsv(id: string, orgId: string, req: {
         user?: {
             orgId?: string;
@@ -254,6 +275,7 @@ export declare class DisposableAttendanceController {
     }>;
     submitPublicResponse(publicId: string, body: {
         values: Record<string, string>;
+        action?: "auto" | "preregister" | "checkin";
     }): Promise<{
         id: string;
         attendanceId: string;

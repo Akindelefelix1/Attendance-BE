@@ -108,6 +108,19 @@ let DisposableAttendanceService = class DisposableAttendanceService {
     todayISO() {
         return new Date().toISOString().slice(0, 10);
     }
+    toResponseDto(item) {
+        return {
+            id: item.id,
+            attendanceId: item.attendanceId,
+            source: item.source,
+            submittedById: item.submittedById,
+            status: item.status === "checked_in" ? "checked-in" : "preregistered",
+            preRegisteredAtISO: item.preRegisteredAt?.toISOString() ?? null,
+            checkedInAtISO: item.checkedInAt?.toISOString() ?? null,
+            submittedAtISO: item.createdAt.toISOString(),
+            values: (item.values ?? {})
+        };
+    }
     toPublicId() {
         return (0, crypto_1.randomBytes)(16).toString("hex");
     }
@@ -332,21 +345,15 @@ let DisposableAttendanceService = class DisposableAttendanceService {
         if (!attendance || attendance.organizationId !== orgId) {
             throw new common_1.NotFoundException("Disposable attendance not found");
         }
+        const responseWhere = {
+            attendanceId,
+            ...(attendance.allowPreRegister ? { preRegisteredAt: { not: null } } : {})
+        };
         const responses = await this.prisma.disposableAttendanceResponse.findMany({
-            where: { attendanceId },
+            where: responseWhere,
             orderBy: { createdAt: "desc" }
         });
-        return responses.map((item) => ({
-            id: item.id,
-            attendanceId: item.attendanceId,
-            source: item.source,
-            submittedById: item.submittedById,
-            status: item.status === "checked_in" ? "checked-in" : "preregistered",
-            preRegisteredAtISO: item.preRegisteredAt?.toISOString() ?? null,
-            checkedInAtISO: item.checkedInAt?.toISOString() ?? null,
-            submittedAtISO: item.createdAt.toISOString(),
-            values: (item.values ?? {})
-        }));
+        return responses.map((item) => this.toResponseDto(item));
     }
     async updateCollectedFields(attendanceId, orgId, fields) {
         this.validateFields(fields);
@@ -392,8 +399,12 @@ let DisposableAttendanceService = class DisposableAttendanceService {
             throw new common_1.NotFoundException("Disposable attendance not found");
         }
         const fields = this.asFieldArray(attendance.fields);
+        const responseWhere = {
+            attendanceId,
+            ...(attendance.allowPreRegister ? { preRegisteredAt: { not: null } } : {})
+        };
         const responses = await this.prisma.disposableAttendanceResponse.findMany({
-            where: { attendanceId },
+            where: responseWhere,
             orderBy: { createdAt: "desc" }
         });
         const columns = [
@@ -494,6 +505,50 @@ let DisposableAttendanceService = class DisposableAttendanceService {
             values: sanitized
         };
     }
+    async checkInPreRegisteredResponse(attendanceId, responseId, orgId, adminUserId) {
+        const attendance = await this.prisma.disposableAttendance.findUnique({
+            where: { id: attendanceId }
+        });
+        if (!attendance || attendance.organizationId !== orgId) {
+            throw new common_1.NotFoundException("Disposable attendance not found");
+        }
+        if (!attendance.allowPreRegister) {
+            throw new common_1.BadRequestException("Pre-register must be enabled to use response-level check-in");
+        }
+        const response = await this.prisma.disposableAttendanceResponse.findFirst({
+            where: {
+                id: responseId,
+                attendanceId
+            }
+        });
+        if (!response) {
+            throw new common_1.NotFoundException("Response not found");
+        }
+        if (!response.preRegisteredAt) {
+            throw new common_1.BadRequestException("Only pre-registered responses can be checked in");
+        }
+        if (response.status === "checked_in") {
+            return {
+                ...this.toResponseDto(response),
+                action: "checked-in",
+                message: "Attendee is already checked in."
+            };
+        }
+        const updated = await this.prisma.disposableAttendanceResponse.update({
+            where: { id: response.id },
+            data: {
+                source: "admin",
+                submittedById: adminUserId,
+                status: "checked_in",
+                checkedInAt: new Date()
+            }
+        });
+        return {
+            ...this.toResponseDto(updated),
+            action: "checked-in",
+            message: "Attendee checked in successfully."
+        };
+    }
     async getPublicForm(publicId) {
         const item = await this.prisma.disposableAttendance.findUnique({
             where: { publicId }
@@ -516,7 +571,7 @@ let DisposableAttendanceService = class DisposableAttendanceService {
             allowPreRegister: item.allowPreRegister
         };
     }
-    async submitPublicResponse(publicId, values) {
+    async submitPublicResponse(publicId, values, action = "auto") {
         const attendance = await this.prisma.disposableAttendance.findUnique({
             where: { publicId }
         });
@@ -539,8 +594,31 @@ let DisposableAttendanceService = class DisposableAttendanceService {
                     emailNormalized: normalizedEmail
                 }
             });
-            if (todayISO < attendance.eventDateISO) {
+            const wantsCheckIn = action === "checkin";
+            const isBeforeEvent = todayISO < attendance.eventDateISO;
+            const isAfterEvent = todayISO > attendance.eventDateISO;
+            if (wantsCheckIn && isBeforeEvent) {
+                throw new common_1.BadRequestException("Check-in is only available on event day");
+            }
+            if (isAfterEvent) {
+                throw new common_1.BadRequestException("This event check-in window has closed");
+            }
+            if (action === "preregister" || isBeforeEvent) {
                 const sanitized = this.sanitizeResponseValues(fields, values);
+                if (existing?.status === "checked_in") {
+                    return {
+                        id: existing.id,
+                        attendanceId: existing.attendanceId,
+                        source: existing.source,
+                        status: "checked-in",
+                        preRegisteredAtISO: existing.preRegisteredAt?.toISOString() ?? null,
+                        checkedInAtISO: existing.checkedInAt?.toISOString() ?? null,
+                        submittedAtISO: existing.createdAt.toISOString(),
+                        action: "checked-in",
+                        message: "This attendee is already checked in.",
+                        values: (existing.values ?? {})
+                    };
+                }
                 if (existing) {
                     const updated = await this.prisma.disposableAttendanceResponse.update({
                         where: { id: existing.id },
@@ -604,9 +682,6 @@ let DisposableAttendanceService = class DisposableAttendanceService {
                     values: sanitized
                 };
             }
-            if (todayISO > attendance.eventDateISO) {
-                throw new common_1.BadRequestException("This event check-in window has closed");
-            }
             if (existing) {
                 const mergedValues = {
                     ...(existing.values ?? {}),
@@ -633,46 +708,7 @@ let DisposableAttendanceService = class DisposableAttendanceService {
                     values: (updated.values ?? {})
                 };
             }
-            const sanitized = this.sanitizeResponseValues(fields, values);
-            const created = await this.prisma.disposableAttendanceResponse.create({
-                data: {
-                    attendanceId: attendance.id,
-                    source: "public",
-                    status: "checked_in",
-                    emailNormalized: normalizedEmail,
-                    checkedInAt: new Date(),
-                    values: sanitized
-                }
-            });
-            const organization = await this.prisma.organization.findUnique({
-                where: { id: attendance.organizationId },
-                select: { name: true }
-            });
-            const attendeeName = sanitized["full-name"] || "Attendee";
-            void this.emailService
-                .sendDisposableRegistrationSuccessEmail({
-                to: normalizedEmail,
-                attendeeName,
-                eventTitle: attendance.title,
-                eventDateISO: attendance.eventDateISO,
-                location: attendance.location,
-                organizationName: organization?.name || "Organization",
-                statusLabel: "Checked in",
-                nextStepMessage: "Your attendance is confirmed. See you at the event."
-            })
-                .catch(() => undefined);
-            return {
-                id: created.id,
-                attendanceId: created.attendanceId,
-                source: created.source,
-                status: "checked-in",
-                preRegisteredAtISO: created.preRegisteredAt?.toISOString() ?? null,
-                checkedInAtISO: created.checkedInAt?.toISOString() ?? null,
-                submittedAtISO: created.createdAt.toISOString(),
-                action: "checked-in",
-                message: "Check-in successful.",
-                values: sanitized
-            };
+            throw new common_1.BadRequestException("Please register first before checking in.");
         }
         const sanitized = this.sanitizeResponseValues(fields, values);
         const normalizedCreatedEmail = this.extractNormalizedEmail(sanitized);
@@ -726,8 +762,12 @@ let DisposableAttendanceService = class DisposableAttendanceService {
             throw new common_1.NotFoundException("Disposable attendance not found");
         }
         const fields = this.asFieldArray(attendance.fields);
+        const responseWhere = {
+            attendanceId,
+            ...(attendance.allowPreRegister ? { preRegisteredAt: { not: null } } : {})
+        };
         const responses = await this.prisma.disposableAttendanceResponse.findMany({
-            where: { attendanceId },
+            where: responseWhere,
             orderBy: { createdAt: "asc" }
         });
         const headers = [
