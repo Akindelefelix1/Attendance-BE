@@ -50,6 +50,7 @@ export declare class DisposableAttendanceService {
     private todayISO;
     private toResponseDto;
     private toPublicId;
+    private notifyDisposableAttendeeStatus;
     listByOrg(orgId: string): Promise<{
         id: string;
         publicId: string;

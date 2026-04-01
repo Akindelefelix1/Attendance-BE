@@ -124,6 +124,29 @@ let DisposableAttendanceService = class DisposableAttendanceService {
     toPublicId() {
         return (0, crypto_1.randomBytes)(16).toString("hex");
     }
+    async notifyDisposableAttendeeStatus(params) {
+        const normalizedEmail = this.extractNormalizedEmail(params.values) ||
+            params.fallbackEmail?.trim().toLowerCase() ||
+            "";
+        if (!normalizedEmail) {
+            return;
+        }
+        const organization = await this.prisma.organization.findUnique({
+            where: { id: params.organizationId },
+            select: { name: true }
+        });
+        const attendeeName = params.values["full-name"] || "Attendee";
+        await this.emailService.sendDisposableRegistrationSuccessEmail({
+            to: normalizedEmail,
+            attendeeName,
+            eventTitle: params.eventTitle,
+            eventDateISO: params.eventDateISO,
+            location: params.location,
+            organizationName: organization?.name || "Organization",
+            statusLabel: params.statusLabel,
+            nextStepMessage: params.nextStepMessage
+        });
+    }
     async listByOrg(orgId) {
         const items = await this.prisma.disposableAttendance.findMany({
             where: { organizationId: orgId },
@@ -461,6 +484,16 @@ let DisposableAttendanceService = class DisposableAttendanceService {
                         values: mergedValues
                     }
                 });
+                void this.notifyDisposableAttendeeStatus({
+                    organizationId: attendance.organizationId,
+                    eventTitle: attendance.title,
+                    eventDateISO: attendance.eventDateISO,
+                    location: attendance.location,
+                    values: mergedValues,
+                    fallbackEmail: normalizedEmail,
+                    statusLabel: "Checked in",
+                    nextStepMessage: "Your attendance is confirmed. See you at the event."
+                }).catch(() => undefined);
                 return {
                     id: updated.id,
                     attendanceId: updated.attendanceId,
@@ -485,6 +518,16 @@ let DisposableAttendanceService = class DisposableAttendanceService {
                 values: sanitized
             }
         });
+        void this.notifyDisposableAttendeeStatus({
+            organizationId: attendance.organizationId,
+            eventTitle: attendance.title,
+            eventDateISO: attendance.eventDateISO,
+            location: attendance.location,
+            values: sanitized,
+            fallbackEmail: normalizedEmail,
+            statusLabel: "Checked in",
+            nextStepMessage: "Your attendance is confirmed. See you at the event."
+        }).catch(() => undefined);
         return {
             id: created.id,
             attendanceId: created.attendanceId,
@@ -535,6 +578,16 @@ let DisposableAttendanceService = class DisposableAttendanceService {
                 checkedInAt: new Date()
             }
         });
+        void this.notifyDisposableAttendeeStatus({
+            organizationId: attendance.organizationId,
+            eventTitle: attendance.title,
+            eventDateISO: attendance.eventDateISO,
+            location: attendance.location,
+            values: (updated.values ?? {}),
+            fallbackEmail: updated.emailNormalized,
+            statusLabel: "Checked in",
+            nextStepMessage: "Your attendance is confirmed. See you at the event."
+        }).catch(() => undefined);
         return {
             ...this.toResponseDto(updated),
             action: "checked-in",
@@ -621,6 +674,16 @@ let DisposableAttendanceService = class DisposableAttendanceService {
                             checkedInAt: null
                         }
                     });
+                    void this.notifyDisposableAttendeeStatus({
+                        organizationId: attendance.organizationId,
+                        eventTitle: attendance.title,
+                        eventDateISO: attendance.eventDateISO,
+                        location: attendance.location,
+                        values: sanitized,
+                        fallbackEmail: normalizedEmail,
+                        statusLabel: "Pre-registered",
+                        nextStepMessage: "Please scan the event QR code again on event day to complete your check-in."
+                    }).catch(() => undefined);
                     return {
                         id: updated.id,
                         attendanceId: updated.attendanceId,
@@ -644,23 +707,16 @@ let DisposableAttendanceService = class DisposableAttendanceService {
                         values: sanitized
                     }
                 });
-                const organization = await this.prisma.organization.findUnique({
-                    where: { id: attendance.organizationId },
-                    select: { name: true }
-                });
-                const attendeeName = sanitized["full-name"] || "Attendee";
-                void this.emailService
-                    .sendDisposableRegistrationSuccessEmail({
-                    to: normalizedEmail,
-                    attendeeName,
+                void this.notifyDisposableAttendeeStatus({
+                    organizationId: attendance.organizationId,
                     eventTitle: attendance.title,
                     eventDateISO: attendance.eventDateISO,
                     location: attendance.location,
-                    organizationName: organization?.name || "Organization",
+                    values: sanitized,
+                    fallbackEmail: normalizedEmail,
                     statusLabel: "Pre-registered",
                     nextStepMessage: "Please scan the event QR code again on event day to complete your check-in."
-                })
-                    .catch(() => undefined);
+                }).catch(() => undefined);
                 return {
                     id: created.id,
                     attendanceId: created.attendanceId,
@@ -687,6 +743,16 @@ let DisposableAttendanceService = class DisposableAttendanceService {
                         values: mergedValues
                     }
                 });
+                void this.notifyDisposableAttendeeStatus({
+                    organizationId: attendance.organizationId,
+                    eventTitle: attendance.title,
+                    eventDateISO: attendance.eventDateISO,
+                    location: attendance.location,
+                    values: mergedValues,
+                    fallbackEmail: normalizedEmail,
+                    statusLabel: "Checked in",
+                    nextStepMessage: "Your attendance is confirmed. See you at the event."
+                }).catch(() => undefined);
                 return {
                     id: updated.id,
                     attendanceId: updated.attendanceId,
@@ -715,23 +781,16 @@ let DisposableAttendanceService = class DisposableAttendanceService {
             }
         });
         if (normalizedCreatedEmail) {
-            const organization = await this.prisma.organization.findUnique({
-                where: { id: attendance.organizationId },
-                select: { name: true }
-            });
-            const attendeeName = sanitized["full-name"] || "Attendee";
-            void this.emailService
-                .sendDisposableRegistrationSuccessEmail({
-                to: normalizedCreatedEmail,
-                attendeeName,
+            void this.notifyDisposableAttendeeStatus({
+                organizationId: attendance.organizationId,
                 eventTitle: attendance.title,
                 eventDateISO: attendance.eventDateISO,
                 location: attendance.location,
-                organizationName: organization?.name || "Organization",
+                values: sanitized,
+                fallbackEmail: normalizedCreatedEmail,
                 statusLabel: "Checked in",
                 nextStepMessage: "Your attendance is confirmed. See you at the event."
-            })
-                .catch(() => undefined);
+            }).catch(() => undefined);
         }
         return {
             id: created.id,
