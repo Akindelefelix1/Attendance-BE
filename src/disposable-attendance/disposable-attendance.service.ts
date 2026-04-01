@@ -451,13 +451,8 @@ export class DisposableAttendanceService {
       throw new NotFoundException("Disposable attendance not found");
     }
 
-    const responseWhere: Prisma.DisposableAttendanceResponseWhereInput = {
-      attendanceId,
-      ...(attendance.allowPreRegister ? { preRegisteredAt: { not: null } } : {})
-    };
-
     const responses = await this.prisma.disposableAttendanceResponse.findMany({
-      where: responseWhere,
+      where: { attendanceId },
       orderBy: { createdAt: "desc" }
     });
 
@@ -519,13 +514,8 @@ export class DisposableAttendanceService {
     }
 
     const fields = this.asFieldArray(attendance.fields);
-    const responseWhere: Prisma.DisposableAttendanceResponseWhereInput = {
-      attendanceId,
-      ...(attendance.allowPreRegister ? { preRegisteredAt: { not: null } } : {})
-    };
-
     const responses = await this.prisma.disposableAttendanceResponse.findMany({
-      where: responseWhere,
+      where: { attendanceId },
       orderBy: { createdAt: "desc" }
     });
 
@@ -952,13 +942,8 @@ export class DisposableAttendanceService {
     }
 
     const fields = this.asFieldArray(attendance.fields);
-    const responseWhere: Prisma.DisposableAttendanceResponseWhereInput = {
-      attendanceId,
-      ...(attendance.allowPreRegister ? { preRegisteredAt: { not: null } } : {})
-    };
-
     const responses = await this.prisma.disposableAttendanceResponse.findMany({
-      where: responseWhere,
+      where: { attendanceId },
       orderBy: { createdAt: "asc" }
     });
 

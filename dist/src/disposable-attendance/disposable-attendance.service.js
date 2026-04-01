@@ -345,12 +345,8 @@ let DisposableAttendanceService = class DisposableAttendanceService {
         if (!attendance || attendance.organizationId !== orgId) {
             throw new common_1.NotFoundException("Disposable attendance not found");
         }
-        const responseWhere = {
-            attendanceId,
-            ...(attendance.allowPreRegister ? { preRegisteredAt: { not: null } } : {})
-        };
         const responses = await this.prisma.disposableAttendanceResponse.findMany({
-            where: responseWhere,
+            where: { attendanceId },
             orderBy: { createdAt: "desc" }
         });
         return responses.map((item) => this.toResponseDto(item));
@@ -399,12 +395,8 @@ let DisposableAttendanceService = class DisposableAttendanceService {
             throw new common_1.NotFoundException("Disposable attendance not found");
         }
         const fields = this.asFieldArray(attendance.fields);
-        const responseWhere = {
-            attendanceId,
-            ...(attendance.allowPreRegister ? { preRegisteredAt: { not: null } } : {})
-        };
         const responses = await this.prisma.disposableAttendanceResponse.findMany({
-            where: responseWhere,
+            where: { attendanceId },
             orderBy: { createdAt: "desc" }
         });
         const columns = [
@@ -762,12 +754,8 @@ let DisposableAttendanceService = class DisposableAttendanceService {
             throw new common_1.NotFoundException("Disposable attendance not found");
         }
         const fields = this.asFieldArray(attendance.fields);
-        const responseWhere = {
-            attendanceId,
-            ...(attendance.allowPreRegister ? { preRegisteredAt: { not: null } } : {})
-        };
         const responses = await this.prisma.disposableAttendanceResponse.findMany({
-            where: responseWhere,
+            where: { attendanceId },
             orderBy: { createdAt: "asc" }
         });
         const headers = [
