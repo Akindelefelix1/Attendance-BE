@@ -594,6 +594,46 @@ let DisposableAttendanceService = class DisposableAttendanceService {
             message: "Attendee checked in successfully."
         };
     }
+    async updateResponse(attendanceId, responseId, orgId, values, adminUserId) {
+        const attendance = await this.prisma.disposableAttendance.findUnique({
+            where: { id: attendanceId }
+        });
+        if (!attendance || attendance.organizationId !== orgId) {
+            throw new common_1.NotFoundException("Disposable attendance not found");
+        }
+        const response = await this.prisma.disposableAttendanceResponse.findFirst({
+            where: {
+                id: responseId,
+                attendanceId
+            }
+        });
+        if (!response) {
+            throw new common_1.NotFoundException("Response not found");
+        }
+        const fields = this.asFieldArray(attendance.fields);
+        const fieldIds = new Set(fields.map((f) => f.id));
+        const sanitized = {};
+        for (const [key, value] of Object.entries(values)) {
+            if (fieldIds.has(key) && typeof value === "string") {
+                sanitized[key] = value.trim();
+            }
+        }
+        let emailNormalized = null;
+        const emailField = fields.find((f) => f.type === "email");
+        if (emailField && sanitized[emailField.id]) {
+            emailNormalized = sanitized[emailField.id].toLowerCase().trim();
+        }
+        const updated = await this.prisma.disposableAttendanceResponse.update({
+            where: { id: response.id },
+            data: {
+                values: sanitized,
+                emailNormalized,
+                submittedById: adminUserId,
+                source: "admin"
+            }
+        });
+        return this.toResponseDto(updated);
+    }
     async getPublicForm(publicId) {
         const item = await this.prisma.disposableAttendance.findUnique({
             where: { publicId }

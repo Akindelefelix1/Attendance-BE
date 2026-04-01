@@ -545,6 +545,54 @@ export class DisposableAttendanceController {
     );
   }
 
+  @Patch("disposable-attendance/:id/responses/:responseId")
+  @ApiCookieAuth("cookieAuth")
+  @ApiOperation({
+    summary: "Update disposable attendance response details",
+    description: "Edit the collected details/values for an existing attendee response"
+  })
+  @ApiParam({ name: "id", type: String, description: "Form ID", example: "form_123" })
+  @ApiParam({
+    name: "responseId",
+    type: String,
+    description: "Response ID",
+    example: "resp_123"
+  })
+  @ApiBody({
+    schema: {
+      type: "object",
+      required: ["orgId", "values"],
+      properties: {
+        orgId: { type: "string" },
+        values: {
+          type: "object",
+          additionalProperties: { type: "string" },
+          description: "Updated field values"
+        }
+      }
+    }
+  })
+  @ApiOkResponse({ description: "Response updated" })
+  @ApiNotFoundResponse({ description: "Response not found" })
+  @ApiForbiddenResponse({ description: "Authentication/authorization failed" })
+  @UseGuards(AuthGuard("jwt"), PermissionsGuard)
+  @Permissions("manage_attendance")
+  updateResponse(
+    @Param("id") id: string,
+    @Param("responseId") responseId: string,
+    @Body() body: { orgId: string; values: Record<string, string> },
+    @Req() req: { user?: { orgId?: string; role?: string; id?: string } }
+  ) {
+    this.assertOrgScope(body.orgId, req.user);
+    return this.disposableService.updateResponse(
+      id,
+      responseId,
+      body.orgId,
+      body.values,
+      req.user?.id ?? ""
+    );
+  }
+
   @Get("disposable-attendance/:id/export.csv")
   @ApiCookieAuth("cookieAuth")
   @ApiOperation({

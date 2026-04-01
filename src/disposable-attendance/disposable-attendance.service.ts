@@ -766,6 +766,63 @@ export class DisposableAttendanceService {
     };
   }
 
+  async updateResponse(
+    attendanceId: string,
+    responseId: string,
+    orgId: string,
+    values: Record<string, string>,
+    adminUserId: string
+  ) {
+    const attendance = await this.prisma.disposableAttendance.findUnique({
+      where: { id: attendanceId }
+    });
+
+    if (!attendance || attendance.organizationId !== orgId) {
+      throw new NotFoundException("Disposable attendance not found");
+    }
+
+    const response = await this.prisma.disposableAttendanceResponse.findFirst({
+      where: {
+        id: responseId,
+        attendanceId
+      }
+    });
+
+    if (!response) {
+      throw new NotFoundException("Response not found");
+    }
+
+    // Validate field values match the attendance fields
+    const fields = this.asFieldArray(attendance.fields);
+    const fieldIds = new Set(fields.map((f) => f.id));
+
+    const sanitized: Record<string, string> = {};
+    for (const [key, value] of Object.entries(values)) {
+      if (fieldIds.has(key) && typeof value === "string") {
+        sanitized[key] = value.trim();
+      }
+    }
+
+    // Extract email for normalization
+    let emailNormalized: string | null = null;
+    const emailField = fields.find((f) => f.type === "email");
+    if (emailField && sanitized[emailField.id]) {
+      emailNormalized = sanitized[emailField.id].toLowerCase().trim();
+    }
+
+    const updated = await this.prisma.disposableAttendanceResponse.update({
+      where: { id: response.id },
+      data: {
+        values: sanitized as unknown as Prisma.InputJsonValue,
+        emailNormalized,
+        submittedById: adminUserId,
+        source: "admin"
+      }
+    });
+
+    return this.toResponseDto(updated);
+  }
+
   async getPublicForm(publicId: string) {
     const item = await this.prisma.disposableAttendance.findUnique({
       where: { publicId }

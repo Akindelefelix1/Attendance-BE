@@ -169,6 +169,17 @@ export declare class DisposableAttendanceService {
         submittedAtISO: string;
         values: Record<string, string>;
     }>;
+    updateResponse(attendanceId: string, responseId: string, orgId: string, values: Record<string, string>, adminUserId: string): Promise<{
+        id: string;
+        attendanceId: string;
+        source: string;
+        submittedById: string | null;
+        status: string;
+        preRegisteredAtISO: string | null;
+        checkedInAtISO: string | null;
+        submittedAtISO: string;
+        values: Record<string, string>;
+    }>;
     getPublicForm(publicId: string): Promise<{
         publicId: string;
         title: string;

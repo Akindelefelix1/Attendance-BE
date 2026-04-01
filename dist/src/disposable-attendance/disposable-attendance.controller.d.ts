@@ -248,6 +248,26 @@ export declare class DisposableAttendanceController {
         submittedAtISO: string;
         values: Record<string, string>;
     }>;
+    updateResponse(id: string, responseId: string, body: {
+        orgId: string;
+        values: Record<string, string>;
+    }, req: {
+        user?: {
+            orgId?: string;
+            role?: string;
+            id?: string;
+        };
+    }): Promise<{
+        id: string;
+        attendanceId: string;
+        source: string;
+        submittedById: string | null;
+        status: string;
+        preRegisteredAtISO: string | null;
+        checkedInAtISO: string | null;
+        submittedAtISO: string;
+        values: Record<string, string>;
+    }>;
     exportCsv(id: string, orgId: string, req: {
         user?: {
             orgId?: string;

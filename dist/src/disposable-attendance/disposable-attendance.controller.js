@@ -71,6 +71,10 @@ let DisposableAttendanceController = class DisposableAttendanceController {
         this.assertOrgScope(body.orgId, req.user);
         return this.disposableService.checkInPreRegisteredResponse(id, responseId, body.orgId, req.user?.id ?? "");
     }
+    updateResponse(id, responseId, body, req) {
+        this.assertOrgScope(body.orgId, req.user);
+        return this.disposableService.updateResponse(id, responseId, body.orgId, body.values, req.user?.id ?? "");
+    }
     async exportCsv(id, orgId, req, res) {
         this.assertOrgScope(orgId, req.user);
         const exported = await this.disposableService.exportCsv(id, orgId);
@@ -515,6 +519,47 @@ __decorate([
     __metadata("design:paramtypes", [String, String, Object, Object]),
     __metadata("design:returntype", void 0)
 ], DisposableAttendanceController.prototype, "checkInPreRegisteredResponse", null);
+__decorate([
+    (0, common_1.Patch)("disposable-attendance/:id/responses/:responseId"),
+    (0, swagger_1.ApiCookieAuth)("cookieAuth"),
+    (0, swagger_1.ApiOperation)({
+        summary: "Update disposable attendance response details",
+        description: "Edit the collected details/values for an existing attendee response"
+    }),
+    (0, swagger_1.ApiParam)({ name: "id", type: String, description: "Form ID", example: "form_123" }),
+    (0, swagger_1.ApiParam)({
+        name: "responseId",
+        type: String,
+        description: "Response ID",
+        example: "resp_123"
+    }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: "object",
+            required: ["orgId", "values"],
+            properties: {
+                orgId: { type: "string" },
+                values: {
+                    type: "object",
+                    additionalProperties: { type: "string" },
+                    description: "Updated field values"
+                }
+            }
+        }
+    }),
+    (0, swagger_1.ApiOkResponse)({ description: "Response updated" }),
+    (0, swagger_1.ApiNotFoundResponse)({ description: "Response not found" }),
+    (0, swagger_1.ApiForbiddenResponse)({ description: "Authentication/authorization failed" }),
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)("jwt"), permissions_guard_1.PermissionsGuard),
+    (0, permissions_decorator_1.Permissions)("manage_attendance"),
+    __param(0, (0, common_1.Param)("id")),
+    __param(1, (0, common_1.Param)("responseId")),
+    __param(2, (0, common_1.Body)()),
+    __param(3, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object, Object]),
+    __metadata("design:returntype", void 0)
+], DisposableAttendanceController.prototype, "updateResponse", null);
 __decorate([
     (0, common_1.Get)("disposable-attendance/:id/export.csv"),
     (0, swagger_1.ApiCookieAuth)("cookieAuth"),
