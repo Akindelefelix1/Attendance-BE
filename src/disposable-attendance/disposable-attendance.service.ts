@@ -43,6 +43,7 @@ type CreateDisposablePayload = {
   title: string;
   description?: string;
   location?: string;
+  postSubmitActionLink?: string;
   eventDateISO: string;
   fields: DisposableField[];
   isRecurring: boolean;
@@ -174,6 +175,26 @@ export class DisposableAttendanceService {
     return new Date().toISOString().slice(0, 10);
   }
 
+  private normalizeActionLink(value?: string | null) {
+    const trimmed = value?.trim() ?? "";
+    if (!trimmed) return null;
+
+    let parsed: URL;
+    try {
+      parsed = new URL(trimmed);
+    } catch {
+      throw new BadRequestException("Post-submit action link must be a valid URL");
+    }
+
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      throw new BadRequestException(
+        "Post-submit action link must start with http:// or https://"
+      );
+    }
+
+    return parsed.toString();
+  }
+
   private toResponseDto(item: {
     id: string;
     attendanceId: string;
@@ -259,6 +280,7 @@ export class DisposableAttendanceService {
       recurrenceEndDateISO: item.recurrenceEndDateISO,
       recurrenceCustomRule: item.recurrenceCustomRule,
       allowPreRegister: item.allowPreRegister,
+      postSubmitActionLink: item.postSubmitActionLink,
       isArchived: item.isArchived,
       createdAtISO: item.createdAt.toISOString(),
       updatedAtISO: item.updatedAt.toISOString()
@@ -275,6 +297,7 @@ export class DisposableAttendanceService {
 
     this.validateFields(payload.fields);
     this.validateRecurring(payload);
+    const normalizedActionLink = this.normalizeActionLink(payload.postSubmitActionLink);
     if (payload.allowPreRegister && !payload.fields.some((field) => field.id === "email")) {
       throw new BadRequestException("Email field is required when pre-register is enabled");
     }
@@ -316,7 +339,8 @@ export class DisposableAttendanceService {
           payload.isRecurring && payload.recurrenceMode === "custom"
             ? payload.recurrenceCustomRule?.trim() ?? ""
             : "",
-        allowPreRegister: payload.allowPreRegister ?? false
+        allowPreRegister: payload.allowPreRegister ?? false,
+        postSubmitActionLink: normalizedActionLink
       }
     });
 
@@ -352,6 +376,7 @@ export class DisposableAttendanceService {
       recurrenceEndDateISO: created.recurrenceEndDateISO,
       recurrenceCustomRule: created.recurrenceCustomRule,
       allowPreRegister: created.allowPreRegister,
+      postSubmitActionLink: created.postSubmitActionLink,
       isArchived: created.isArchived,
       createdAtISO: created.createdAt.toISOString(),
       updatedAtISO: created.updatedAt.toISOString()
@@ -372,6 +397,10 @@ export class DisposableAttendanceService {
     if (nextAllowPreRegister && !nextFields.some((field) => field.id === "email")) {
       throw new BadRequestException("Email field is required when pre-register is enabled");
     }
+    const normalizedActionLink =
+      updates.postSubmitActionLink !== undefined
+        ? this.normalizeActionLink(updates.postSubmitActionLink)
+        : undefined;
 
     this.validateRecurring({
       isRecurring: updates.isRecurring ?? existing.isRecurring,
@@ -398,6 +427,7 @@ export class DisposableAttendanceService {
             ? updates.recurrenceCustomRule.trim()
             : undefined,
         allowPreRegister: updates.allowPreRegister,
+        postSubmitActionLink: normalizedActionLink,
         isArchived: updates.isArchived
       }
     });
@@ -441,6 +471,7 @@ export class DisposableAttendanceService {
       recurrenceEndDateISO: next.recurrenceEndDateISO,
       recurrenceCustomRule: next.recurrenceCustomRule,
       allowPreRegister: next.allowPreRegister,
+      postSubmitActionLink: next.postSubmitActionLink,
       isArchived: next.isArchived,
       createdAtISO: next.createdAt.toISOString(),
       updatedAtISO: next.updatedAt.toISOString()
@@ -844,7 +875,8 @@ export class DisposableAttendanceService {
       recurrenceMode: item.recurrenceMode,
       recurrenceEndDateISO: item.recurrenceEndDateISO,
       recurrenceCustomRule: item.recurrenceCustomRule,
-      allowPreRegister: item.allowPreRegister
+      allowPreRegister: item.allowPreRegister,
+      postSubmitActionLink: item.postSubmitActionLink
     };
   }
 
@@ -906,6 +938,7 @@ export class DisposableAttendanceService {
             submittedAtISO: existing.createdAt.toISOString(),
             action: "checked-in",
             message: "This attendee is already checked in.",
+            postSubmitActionLink: attendance.postSubmitActionLink,
             values: (existing.values ?? {}) as Record<string, string>
           };
         }
@@ -943,6 +976,7 @@ export class DisposableAttendanceService {
             submittedAtISO: updated.createdAt.toISOString(),
             action: "already-preregistered",
             message: "You are already pre-registered for this event.",
+            postSubmitActionLink: attendance.postSubmitActionLink,
             values: sanitized
           };
         }
@@ -980,6 +1014,7 @@ export class DisposableAttendanceService {
           submittedAtISO: created.createdAt.toISOString(),
           action: "pre-registered",
           message: "Pre-registration successful. Please scan again on event day to check in.",
+          postSubmitActionLink: attendance.postSubmitActionLink,
           values: sanitized
         };
       }
@@ -1019,6 +1054,7 @@ export class DisposableAttendanceService {
           submittedAtISO: updated.createdAt.toISOString(),
           action: "checked-in",
           message: "Welcome back. Your attendance has been checked in.",
+          postSubmitActionLink: attendance.postSubmitActionLink,
           values: (updated.values ?? {}) as Record<string, string>
         };
       }
@@ -1064,6 +1100,7 @@ export class DisposableAttendanceService {
       submittedAtISO: created.createdAt.toISOString(),
       action: "checked-in",
       message: "Check-in submitted successfully.",
+      postSubmitActionLink: attendance.postSubmitActionLink,
       values: sanitized
     };
   }
