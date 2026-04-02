@@ -145,6 +145,7 @@ model DisposableAttendance {
   recurrenceCustomRule  String                   @default("")
   allowPreRegister      Boolean                  @default(false)
   postSubmitActionLink  String?
+  postSubmitActionLabel String?
   isArchived            Boolean                  @default(false)
   responses             DisposableAttendanceResponse[]
   createdAt             DateTime                 @default(now())

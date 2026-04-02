@@ -81,6 +81,7 @@ export class DisposableAttendanceController {
           recurrenceMode: { type: "string", enum: ["none", "daily", "weekly", "monthly", "custom"] },
           allowPreRegister: { type: "boolean" },
           postSubmitActionLink: { type: "string", nullable: true },
+          postSubmitActionLabel: { type: "string", nullable: true },
           isArchived: { type: "boolean" },
           publicId: { type: "string", nullable: true },
           responseCount: { type: "number" }
@@ -138,6 +139,12 @@ export class DisposableAttendanceController {
           description:
             "Optional URL shown after successful public pre-register/check-in for next action",
           example: "https://chat.whatsapp.com/abc123"
+        },
+        postSubmitActionLabel: {
+          type: "string",
+          nullable: true,
+          description: "Optional action button label shown with the post-submit link",
+          example: "Join WhatsApp group"
         },
         eventDateISO: {
           type: "string",
@@ -217,6 +224,7 @@ export class DisposableAttendanceController {
       description?: string;
       location?: string;
       postSubmitActionLink?: string;
+      postSubmitActionLabel?: string;
       eventDateISO: string;
       fields: Array<{
         id: string;
@@ -258,6 +266,7 @@ export class DisposableAttendanceController {
         description: { type: "string", nullable: true },
         location: { type: "string", nullable: true },
         postSubmitActionLink: { type: "string", nullable: true },
+        postSubmitActionLabel: { type: "string", nullable: true },
         eventDateISO: { type: "string", format: "date" },
         fields: { type: "array", items: { type: "object" } },
         isRecurring: { type: "boolean" },
@@ -285,6 +294,7 @@ export class DisposableAttendanceController {
       description?: string;
       location?: string;
       postSubmitActionLink?: string;
+      postSubmitActionLabel?: string;
       eventDateISO?: string;
       fields?: Array<{
         id: string;
@@ -668,6 +678,7 @@ export class DisposableAttendanceController {
         eventDateISO: { type: "string", format: "date" },
         allowPreRegister: { type: "boolean" },
         postSubmitActionLink: { type: "string", nullable: true },
+        postSubmitActionLabel: { type: "string", nullable: true },
         fields: { type: "array", items: { type: "object" } }
       }
     }
@@ -726,6 +737,11 @@ export class DisposableAttendanceController {
           type: "string",
           nullable: true,
           example: "https://chat.whatsapp.com/abc123"
+        },
+        postSubmitActionLabel: {
+          type: "string",
+          nullable: true,
+          example: "Join WhatsApp group"
         }
       }
     }
